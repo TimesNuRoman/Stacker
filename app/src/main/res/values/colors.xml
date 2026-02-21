@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_primary">#FF1E1F22</color>
+    <color name="bg_secondary">#FF2B2D30</color>
+    <color name="bg_editor">#FF1E1F22</color>
+    <color name="bg_toolbar">#FF3C3F41</color>
+    <color name="text_primary">#FFA9B7C6</color>
+    <color name="text_keyword">#FFCC7832</color>
+    <color name="text_string">#FF6A8759</color>
+    <color name="text_number">#FF6897BB</color>
+    <color name="text_comment">#FF808080</color>
+    <color name="accent_blue">#FF3574F0</color>
+    <color name="accent_green">#FF499C54</color>
+    <color name="accent_orange">#FFCC7832</color>
+    <color name="accent_red">#FFFF6B68</color>
+    <color name="gutter">#FF313335</color>
+    <color name="selection">#FF214283</color>
+</resources>
