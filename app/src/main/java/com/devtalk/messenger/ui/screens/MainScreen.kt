@@ -559,8 +559,9 @@ private fun ChatEditorView(
                 }
             }
 
-            items(messages) { message ->
-                val lineNum = 6 + messages.indexOf(message) * 2
+            items(messages.size) { index ->
+                val message = messages[index]
+                val lineNum = 6 + index * 3
                 val isOwn = message.senderId == currentUser.uid
                 val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestamp))
 

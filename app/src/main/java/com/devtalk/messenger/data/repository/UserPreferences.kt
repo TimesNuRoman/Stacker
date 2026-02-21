@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,10 +46,6 @@ class UserPreferences @Inject constructor(
     }
 
     suspend fun getUidSync(): String? {
-        var result: String? = null
-        context.dataStore.edit { prefs ->
-            result = prefs[KEY_UID]
-        }
-        return result
+        return context.dataStore.data.first()[KEY_UID]
     }
 }

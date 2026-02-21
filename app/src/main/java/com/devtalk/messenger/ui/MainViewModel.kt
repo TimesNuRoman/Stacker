@@ -64,6 +64,9 @@ class MainViewModel @Inject constructor(
     val isSpeakerOn = webRtcManager.isSpeakerOn
     val callDuration = webRtcManager.callDuration
 
+    // Track active message observers to prevent memory leaks
+    private val messageObserverJobs = mutableMapOf<String, kotlinx.coroutines.Job>()
+
     init {
         checkExistingSession()
     }
@@ -232,8 +235,12 @@ class MainViewModel @Inject constructor(
     // === CHATS ===
     fun selectChat(chatId: String) {
         _selectedChatId.value = chatId
+        
+        // Cancel existing observer for this chat to prevent memory leak
+        messageObserverJobs[chatId]?.cancel()
+        
         // Start observing messages for this chat
-        viewModelScope.launch {
+        messageObserverJobs[chatId] = viewModelScope.launch {
             repository.observeMessages(chatId).collect { msgs ->
                 _messages.value = _messages.value.toMutableMap().apply {
                     put(chatId, msgs)
@@ -243,6 +250,10 @@ class MainViewModel @Inject constructor(
     }
 
     fun closeChat(chatId: String) {
+        // Cancel the message observer job
+        messageObserverJobs[chatId]?.cancel()
+        messageObserverJobs.remove(chatId)
+        
         _messages.value = _messages.value.toMutableMap().apply { remove(chatId) }
         if (_selectedChatId.value == chatId) {
             _selectedChatId.value = _chats.value.firstOrNull { it.id != chatId }?.id
@@ -364,9 +375,19 @@ class MainViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        viewModelScope.launch {
-            _currentUser.value?.uid?.let {
-                repository.updateUserStatus(it, UserStatus.OFFLINE)
+        // Cancel all message observer jobs
+        messageObserverJobs.values.forEach { it.cancel() }
+        messageObserverJobs.clear()
+        
+        // Use GlobalScope since viewModelScope is cancelled when ViewModel is cleared
+        // This ensures the status update completes even after ViewModel destruction
+        _currentUser.value?.uid?.let { uid ->
+            kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    repository.updateUserStatus(uid, UserStatus.OFFLINE)
+                } catch (_: Exception) {
+                    // Ignore errors during cleanup
+                }
             }
         }
     }

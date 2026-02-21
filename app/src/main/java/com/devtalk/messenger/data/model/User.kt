@@ -31,8 +31,8 @@ data class User(
             } catch (_: Exception) {
                 UserStatus.OFFLINE
             },
-            createdAt = (map["createdAt"] as? Long) ?: System.currentTimeMillis(),
-            lastSeen = (map["lastSeen"] as? Long) ?: System.currentTimeMillis(),
+            createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis(),
+            lastSeen = (map["lastSeen"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             bio = map["bio"] as? String ?: "// no bio yet",
             profileLink = map["profileLink"] as? String ?: ""
         )

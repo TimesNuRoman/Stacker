@@ -150,14 +150,12 @@ private fun IdeTab(
             )
         }
     }
-    if (!false) {
-        Box(
-            modifier = Modifier
-                .width(1.dp)
-                .height(32.dp)
-                .background(IdeColors.border)
-        )
-    }
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(32.dp)
+            .background(IdeColors.border)
+    )
 }
 
 /**

@@ -276,9 +276,11 @@ class WebRtcManager @Inject constructor(
                         override fun onSetSuccess() {
                             scope.launch {
                                 // Update Firebase with the offer
-                                firebaseRepository.createCall(
-                                    _callState.value!!.copy(offer = it.description)
-                                )
+                                _callState.value?.let { currentCall ->
+                                    firebaseRepository.createCall(
+                                        currentCall.copy(offer = it.description)
+                                    )
+                                }
                             }
                         }
                         override fun onCreateFailure(p0: String?) {}
@@ -333,13 +335,36 @@ class WebRtcManager @Inject constructor(
         scope.launch {
             firebaseRepository.observeCall(callId).collect { call ->
                 call?.let {
+                    val previousState = _callState.value
                     _callState.value = it
+                    
+                    // If we're the initiator and received an answer, set remote description
+                    if (isInitiator && 
+                        it.answer.isNotEmpty() && 
+                        previousState?.answer.isNullOrEmpty()) {
+                        setRemoteAnswer(it.answer)
+                    }
+                    
                     if (it.status == CallStatus.ENDED || it.status == CallStatus.REJECTED) {
                         cleanup()
                     }
                 }
             }
         }
+    }
+
+    private fun setRemoteAnswer(answer: String) {
+        val remoteDesc = SessionDescription(SessionDescription.Type.ANSWER, answer)
+        peerConnection?.setRemoteDescription(object : SdpObserver {
+            override fun onCreateSuccess(p0: SessionDescription?) {}
+            override fun onSetSuccess() {
+                // Remote description set successfully
+            }
+            override fun onCreateFailure(p0: String?) {}
+            override fun onSetFailure(error: String?) {
+                // Log error if needed
+            }
+        }, remoteDesc)
     }
 
     private fun cleanup() {

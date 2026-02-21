@@ -33,7 +33,7 @@ data class Message(
             } catch (_: Exception) {
                 MessageType.TEXT
             },
-            timestamp = (map["timestamp"] as? Long) ?: System.currentTimeMillis(),
+            timestamp = (map["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis(),
             isRead = map["isRead"] as? Boolean ?: false
         )
     }

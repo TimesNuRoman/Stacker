@@ -48,6 +48,7 @@ fun QrScannerScreen(
     var scannedResult by remember { mutableStateOf<String?>(null) }
     var manualUsername by remember { mutableStateOf("") }
     var isProcessing by remember { mutableStateOf(false) }
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -94,8 +95,8 @@ fun QrScannerScreen(
                 TabItem("scanner.cam", icon = Icons.Default.QrCodeScanner),
                 TabItem("manual_add.kt", icon = Icons.Default.PersonAdd)
             ),
-            selectedIndex = 0,
-            onTabSelected = {}
+            selectedIndex = selectedTabIndex,
+            onTabSelected = { selectedTabIndex = it }
         )
 
         Column(
@@ -104,13 +105,16 @@ fun QrScannerScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "// Point camera at a DevTalk QR code",
-                style = IdeTypography.comment
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+            // Scanner tab content
+            if (selectedTabIndex == 0) {
+                Text(
+                    text = "// Point camera at a DevTalk QR code",
+                    style = IdeTypography.comment
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
 
-            if (hasCameraPermission) {
+            if (selectedTabIndex == 0 && hasCameraPermission) {
                 // Camera preview
                 Box(
                     modifier = Modifier
@@ -203,8 +207,8 @@ fun QrScannerScreen(
                         )
                     }
                 }
-            } else {
-                // No camera permission
+            } else if (selectedTabIndex == 0) {
+                // No camera permission (scanner tab)
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -236,31 +240,44 @@ fun QrScannerScreen(
                 }
             }
 
-            // Scanned result
-            scannedResult?.let { username ->
-                Spacer(modifier = Modifier.height(16.dp))
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(IdeColors.accentGreen.copy(alpha = 0.1f))
-                        .border(1.dp, IdeColors.accentGreen.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
-                        .padding(12.dp)
-                ) {
-                    Text(
-                        text = "// ✓ Contact found!",
-                        style = IdeTypography.comment.copy(color = IdeColors.accentGreen)
-                    )
-                    Text(
-                        text = "addContact(\"$username\")",
-                        style = IdeTypography.code.copy(color = IdeColors.textFunction)
-                    )
+            // Scanned result (shown on scanner tab)
+            if (selectedTabIndex == 0) {
+                scannedResult?.let { username ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(IdeColors.accentGreen.copy(alpha = 0.1f))
+                            .border(1.dp, IdeColors.accentGreen.copy(alpha = 0.5f), RoundedCornerShape(3.dp))
+                            .padding(12.dp)
+                    ) {
+                        Text(
+                            text = "// ✓ Contact found!",
+                            style = IdeTypography.comment.copy(color = IdeColors.accentGreen)
+                        )
+                        Text(
+                            text = "addContact(\"$username\")",
+                            style = IdeTypography.code.copy(color = IdeColors.textFunction)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Manual add tab content
+            if (selectedTabIndex == 1) {
+                Text(
+                    text = "// Add contact manually by username",
+                    style = IdeTypography.comment
+                )
+                Spacer(modifier = Modifier.height(24.dp))
+            }
 
-            // Manual add section
+            // Manual add section (shown on both tabs, but prominent on tab 1)
+            if (selectedTabIndex == 0) {
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+            
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -270,7 +287,7 @@ fun QrScannerScreen(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = "// Or add manually by username:",
+                    text = if (selectedTabIndex == 0) "// Or add manually by username:" else "// Enter username to add:",
                     style = IdeTypography.comment
                 )
                 Spacer(modifier = Modifier.height(8.dp))

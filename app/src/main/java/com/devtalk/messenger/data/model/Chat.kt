@@ -38,12 +38,12 @@ data class Chat(
                 (k as? String)?.let { key -> (v as? String)?.let { value -> key to value } }
             }?.toMap() ?: emptyMap(),
             lastMessage = map["lastMessage"] as? String ?: "",
-            lastMessageTime = (map["lastMessageTime"] as? Long) ?: 0L,
+            lastMessageTime = (map["lastMessageTime"] as? Number)?.toLong() ?: 0L,
             lastMessageSender = map["lastMessageSender"] as? String ?: "",
             unreadCount = (map["unreadCount"] as? Map<*, *>)?.mapNotNull { (k, v) ->
                 (k as? String)?.let { key -> (v as? Number)?.toInt()?.let { value -> key to value } }
             }?.toMap() ?: emptyMap(),
-            createdAt = (map["createdAt"] as? Long) ?: System.currentTimeMillis()
+            createdAt = (map["createdAt"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
     }
 }

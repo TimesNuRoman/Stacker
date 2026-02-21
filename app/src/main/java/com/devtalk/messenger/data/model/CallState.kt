@@ -47,7 +47,7 @@ data class CallSignal(
             offer = map["offer"] as? String ?: "",
             answer = map["answer"] as? String ?: "",
             iceCandidates = (map["iceCandidates"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
-            timestamp = (map["timestamp"] as? Long) ?: System.currentTimeMillis()
+            timestamp = (map["timestamp"] as? Number)?.toLong() ?: System.currentTimeMillis()
         )
     }
 }
