@@ -31,6 +31,10 @@ class MainViewModel @Inject constructor(
         object QrScanner : Screen()
         object Search : Screen()
         object Invite : Screen()
+        object BotCatalog : Screen()
+        object BotBuilder : Screen()
+        data class BotDetail(val botId: String) : Screen()
+        data class BotEdit(val botId: String) : Screen()
         data class Call(val callId: String, val isOutgoing: Boolean) : Screen()
     }
 
@@ -77,6 +81,22 @@ class MainViewModel @Inject constructor(
 
     private val _isSearching = MutableStateFlow(false)
     val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
+    // === Bots ===
+    private val _publicBots = MutableStateFlow<List<Bot>>(emptyList())
+    val publicBots: StateFlow<List<Bot>> = _publicBots.asStateFlow()
+
+    private val _myBots = MutableStateFlow<List<Bot>>(emptyList())
+    val myBots: StateFlow<List<Bot>> = _myBots.asStateFlow()
+
+    private val _selectedBot = MutableStateFlow<Bot?>(null)
+    val selectedBot: StateFlow<Bot?> = _selectedBot.asStateFlow()
+
+    private val _editingBot = MutableStateFlow<Bot?>(null)
+    val editingBot: StateFlow<Bot?> = _editingBot.asStateFlow()
+
+    private val _isBotLoading = MutableStateFlow(false)
+    val isBotLoading: StateFlow<Boolean> = _isBotLoading.asStateFlow()
 
     val callState = webRtcManager.callState
     val isMuted = webRtcManager.isMuted
@@ -285,6 +305,7 @@ class MainViewModel @Inject constructor(
                 timestamp = System.currentTimeMillis()
             )
             repository.sendMessage(message)
+            processBotMessage(chatId, message)
         }
     }
 
@@ -377,6 +398,178 @@ class MainViewModel @Inject constructor(
 
     fun openInvite() {
         _currentScreen.value = Screen.Invite
+    }
+
+    // === BOTS ===
+    fun openBotCatalog() {
+        loadPublicBots()
+        loadMyBots()
+        _currentScreen.value = Screen.BotCatalog
+    }
+
+    fun openBotBuilder() {
+        _editingBot.value = null
+        _currentScreen.value = Screen.BotBuilder
+    }
+
+    fun openBotDetail(botId: String) {
+        viewModelScope.launch {
+            try {
+                val bot = repository.getBot(botId)
+                _selectedBot.value = bot
+                _currentScreen.value = Screen.BotDetail(botId)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun openBotEdit(bot: Bot) {
+        _editingBot.value = bot
+        _currentScreen.value = Screen.BotEdit(bot.id)
+    }
+
+    fun loadPublicBots() {
+        viewModelScope.launch {
+            _isBotLoading.value = true
+            try {
+                _publicBots.value = repository.getPublicBots()
+            } catch (_: Exception) {}
+            _isBotLoading.value = false
+        }
+    }
+
+    fun loadMyBots() {
+        viewModelScope.launch {
+            val uid = _currentUser.value?.uid ?: return@launch
+            try {
+                _myBots.value = repository.getMyBots(uid)
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun saveBot(bot: Bot) {
+        viewModelScope.launch {
+            try {
+                val user = _currentUser.value ?: return@launch
+                val finalBot = if (bot.id.isEmpty()) {
+                    bot.copy(
+                        id = repository.generateBotId(),
+                        creatorUid = user.uid,
+                        creatorName = user.username,
+                        createdAt = System.currentTimeMillis()
+                    )
+                } else {
+                    bot
+                }
+
+                if (bot.id.isEmpty()) {
+                    repository.createBot(finalBot)
+                } else {
+                    repository.updateBot(finalBot)
+                }
+
+                loadMyBots()
+                loadPublicBots()
+                _currentScreen.value = Screen.BotCatalog
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun deleteBot(bot: Bot) {
+        viewModelScope.launch {
+            try {
+                repository.deleteBot(bot.id)
+                loadMyBots()
+                loadPublicBots()
+                _currentScreen.value = Screen.BotCatalog
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun addBotToChat(bot: Bot) {
+        viewModelScope.launch {
+            try {
+                val user = _currentUser.value ?: return@launch
+                // Create a chat with the bot as a "virtual user"
+                val botUser = User(
+                    uid = bot.id,
+                    username = bot.name,
+                    displayName = bot.name,
+                    status = UserStatus.ONLINE,
+                    bio = bot.description
+                )
+                // Ensure bot user exists in users ref for chat creation
+                repository.createUser(botUser)
+
+                val chatId = repository.createChat(user, botUser)
+
+                // Add bot as contact
+                val contact = Contact(
+                    uid = bot.id,
+                    username = "${bot.avatarEmoji} ${bot.name}",
+                    displayName = bot.name,
+                    chatId = chatId
+                )
+                repository.addContact(user.uid, contact)
+
+                // Increment bot stats
+                repository.incrementBotAdded(bot.id)
+
+                // Send welcome message
+                if (bot.welcomeMessage.isNotBlank()) {
+                    val msg = Message(
+                        id = repository.generateMessageId(),
+                        chatId = chatId,
+                        senderId = bot.id,
+                        senderName = bot.name,
+                        content = bot.welcomeMessage,
+                        type = MessageType.TEXT,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.sendMessage(msg)
+                }
+
+                _selectedChatId.value = chatId
+                _currentScreen.value = Screen.Main
+                selectChat(chatId)
+            } catch (e: Exception) {
+                _error.value = e.message
+            }
+        }
+    }
+
+    fun processBotMessage(chatId: String, message: Message) {
+        viewModelScope.launch {
+            try {
+                // Check if the other participant is a bot
+                val chat = repository.getChat(chatId) ?: return@launch
+                val myUid = _currentUser.value?.uid ?: return@launch
+                val otherUid = chat.getOtherParticipant(myUid)
+
+                if (!otherUid.startsWith("bot_")) return@launch
+
+                val bot = repository.getBot(otherUid) ?: return@launch
+                val response = com.devtalk.messenger.bot.BotEngine.processMessage(bot, message.content)
+
+                if (response != null) {
+                    kotlinx.coroutines.delay(500 + (response.length * 15).toLong().coerceAtMost(2000))
+                    val replyMsg = Message(
+                        id = repository.generateMessageId(),
+                        chatId = chatId,
+                        senderId = bot.id,
+                        senderName = bot.name,
+                        content = response,
+                        type = MessageType.TEXT,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    repository.sendMessage(replyMsg)
+                    repository.incrementBotUsage(bot.id)
+                }
+            } catch (_: Exception) {}
+        }
     }
 
     // === PROFILE ===

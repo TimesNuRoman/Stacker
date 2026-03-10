@@ -79,6 +79,11 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
     val onlineUsers by viewModel.onlineUsers.collectAsState()
     val recentUsers by viewModel.recentUsers.collectAsState()
     val isSearching by viewModel.isSearching.collectAsState()
+    val publicBots by viewModel.publicBots.collectAsState()
+    val myBots by viewModel.myBots.collectAsState()
+    val selectedBot by viewModel.selectedBot.collectAsState()
+    val editingBot by viewModel.editingBot.collectAsState()
+    val isBotLoading by viewModel.isBotLoading.collectAsState()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -126,6 +131,7 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onOpenQrScanner = { viewModel.navigateTo(MainViewModel.Screen.QrScanner) },
                         onOpenSearch = { viewModel.openSearch() },
                         onOpenInvite = { viewModel.openInvite() },
+                        onOpenBots = { viewModel.openBotCatalog() },
                         onStartCall = { uid, type -> viewModel.startCall(uid, type) },
                         onLogout = { showLogoutDialog = true },
                         onContactClick = { viewModel.onContactClick(it) },
@@ -178,6 +184,46 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                     username = currentUser?.username ?: "",
                     onBack = { viewModel.navigateBack() }
                 )
+            }
+
+            is MainViewModel.Screen.BotCatalog -> {
+                BotCatalogScreen(
+                    onBack = { viewModel.navigateBack() },
+                    onCreateBot = { viewModel.openBotBuilder() },
+                    onBotClick = { bot -> viewModel.openBotDetail(bot.id) },
+                    onMyBots = {},
+                    publicBots = publicBots,
+                    myBots = myBots,
+                    isLoading = isBotLoading
+                )
+            }
+
+            is MainViewModel.Screen.BotBuilder -> {
+                BotBuilderScreen(
+                    onBack = { viewModel.navigateBack() },
+                    onSave = { bot -> viewModel.saveBot(bot) }
+                )
+            }
+
+            is MainViewModel.Screen.BotEdit -> {
+                BotBuilderScreen(
+                    onBack = { viewModel.navigateBack() },
+                    onSave = { bot -> viewModel.saveBot(bot) },
+                    existingBot = editingBot
+                )
+            }
+
+            is MainViewModel.Screen.BotDetail -> {
+                selectedBot?.let { bot ->
+                    BotDetailScreen(
+                        bot = bot,
+                        onBack = { viewModel.navigateBack() },
+                        onAddToChat = { viewModel.addBotToChat(it) },
+                        onEdit = { viewModel.openBotEdit(it) },
+                        onDelete = { viewModel.deleteBot(it) },
+                        isOwner = bot.creatorUid == (currentUser?.uid ?: "")
+                    )
+                }
             }
 
             is MainViewModel.Screen.Call -> {

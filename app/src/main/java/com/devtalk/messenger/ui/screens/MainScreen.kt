@@ -45,6 +45,7 @@ fun MainScreen(
     onOpenQrScanner: () -> Unit,
     onOpenSearch: () -> Unit,
     onOpenInvite: () -> Unit,
+    onOpenBots: () -> Unit,
     onStartCall: (String, CallType) -> Unit,
     onLogout: () -> Unit,
     onContactClick: (Contact) -> Unit,
@@ -120,6 +121,12 @@ fun MainScreen(
                     tint = IdeColors.accentGreen
                 )
                 IdeIconButton(
+                    icon = Icons.Default.SmartToy,
+                    contentDescription = "Bots",
+                    onClick = onOpenBots,
+                    tint = IdeColors.accentYellow
+                )
+                IdeIconButton(
                     icon = Icons.Default.PersonAdd,
                     contentDescription = "Invite",
                     onClick = onOpenInvite,
@@ -161,6 +168,10 @@ fun MainScreen(
                 DropdownMenuItem(
                     text = { Text("[📡] SCAN QR", style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)) },
                     onClick = { showMenu = false; onOpenQrScanner() }
+                )
+                DropdownMenuItem(
+                    text = { Text("[🤖] BOT CATALOG", style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)) },
+                    onClick = { showMenu = false; onOpenBots() }
                 )
                 DropdownMenuItem(
                     text = { Text("[📢] INVITE FRIENDS", style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)) },
@@ -798,6 +809,10 @@ private fun WelcomeEditor(
                 Text(
                     text = "│ [INVITE]  Share link / QR to invite │",
                     style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)
+                )
+                Text(
+                    text = "│ [BOTS]    Create & use public bots  │",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
                 )
                 Text(
                     text = "│ [VOICE]   Encrypted voice channel   │",

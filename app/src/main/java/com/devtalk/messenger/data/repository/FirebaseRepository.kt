@@ -23,6 +23,7 @@ class FirebaseRepository @Inject constructor() {
     private val messagesRef = db.getReference("messages")
     private val contactsRef = db.getReference("contacts")
     private val callsRef = db.getReference("calls")
+    private val botsRef = db.getReference("bots")
 
     // ===== AUTH =====
     suspend fun signInAnonymously(): String {
@@ -263,6 +264,70 @@ class FirebaseRepository @Inject constructor() {
     suspend fun deleteCall(callId: String) {
         callsRef.child(callId).removeValue().await()
     }
+
+    // ===== BOTS =====
+    suspend fun createBot(bot: Bot) {
+        botsRef.child(bot.id).setValue(bot.toMap()).await()
+    }
+
+    suspend fun updateBot(bot: Bot) {
+        botsRef.child(bot.id).setValue(bot.toMap()).await()
+    }
+
+    suspend fun deleteBot(botId: String) {
+        botsRef.child(botId).removeValue().await()
+    }
+
+    suspend fun getBot(botId: String): Bot? {
+        val snapshot = botsRef.child(botId).get().await()
+        @Suppress("UNCHECKED_CAST")
+        return snapshot.value?.let { Bot.fromMap(it as Map<String, Any?>) }
+    }
+
+    suspend fun getPublicBots(limit: Int = 50): List<Bot> {
+        val snapshot = botsRef.orderByChild("isPublic")
+            .equalTo(true)
+            .limitToFirst(limit)
+            .get()
+            .await()
+        return snapshot.children.mapNotNull { child ->
+            @Suppress("UNCHECKED_CAST")
+            (child.value as? Map<String, Any?>)?.let { Bot.fromMap(it) }
+        }.sortedByDescending { it.addedByCount }
+    }
+
+    suspend fun searchBots(query: String): List<Bot> {
+        val allPublic = getPublicBots(200)
+        val q = query.lowercase()
+        return allPublic.filter {
+            it.name.lowercase().contains(q) ||
+            it.description.lowercase().contains(q) ||
+            it.tags.any { tag -> tag.lowercase().contains(q) }
+        }
+    }
+
+    suspend fun getMyBots(uid: String): List<Bot> {
+        val snapshot = botsRef.orderByChild("creatorUid")
+            .equalTo(uid)
+            .get()
+            .await()
+        return snapshot.children.mapNotNull { child ->
+            @Suppress("UNCHECKED_CAST")
+            (child.value as? Map<String, Any?>)?.let { Bot.fromMap(it) }
+        }.sortedByDescending { it.createdAt }
+    }
+
+    suspend fun incrementBotUsage(botId: String) {
+        botsRef.child(botId).child("usageCount")
+            .setValue(ServerValue.increment(1)).await()
+    }
+
+    suspend fun incrementBotAdded(botId: String) {
+        botsRef.child(botId).child("addedByCount")
+            .setValue(ServerValue.increment(1)).await()
+    }
+
+    fun generateBotId(): String = "bot_${UUID.randomUUID().toString().take(12)}"
 
     // ===== UTILS =====
     private fun generateChatId(uid1: String, uid2: String): String {
