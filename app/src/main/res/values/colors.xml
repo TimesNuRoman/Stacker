@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_primary">#FF1E1F22</color>
-    <color name="bg_secondary">#FF2B2D30</color>
-    <color name="bg_editor">#FF1E1F22</color>
-    <color name="bg_toolbar">#FF3C3F41</color>
-    <color name="text_primary">#FFA9B7C6</color>
-    <color name="text_keyword">#FFCC7832</color>
-    <color name="text_string">#FF6A8759</color>
-    <color name="text_number">#FF6897BB</color>
-    <color name="text_comment">#FF808080</color>
-    <color name="accent_blue">#FF3574F0</color>
-    <color name="accent_green">#FF499C54</color>
-    <color name="accent_orange">#FFCC7832</color>
-    <color name="accent_red">#FFFF6B68</color>
-    <color name="gutter">#FF313335</color>
-    <color name="selection">#FF214283</color>
+    <color name="bg_primary">#FF000000</color>
+    <color name="bg_secondary">#FF0A0A0A</color>
+    <color name="bg_editor">#FF000000</color>
+    <color name="bg_toolbar">#FF050505</color>
+    <color name="text_primary">#FF00FF41</color>
+    <color name="text_keyword">#FF00FF41</color>
+    <color name="text_string">#FF00FFCC</color>
+    <color name="text_number">#FFFF00FF</color>
+    <color name="text_comment">#FF005500</color>
+    <color name="accent_blue">#FF00CCFF</color>
+    <color name="accent_green">#FF00FF41</color>
+    <color name="accent_orange">#FFFF6600</color>
+    <color name="accent_red">#FFFF0040</color>
+    <color name="gutter">#FF0A0A0A</color>
+    <color name="selection">#FF003300</color>
 </resources>

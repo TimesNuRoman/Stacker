@@ -2,150 +2,168 @@ package com.devtalk.messenger.ui.theme
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// === IDE Color Palette (IntelliJ Darcula inspired) ===
+// === HACKER / NEON / MATRIX Color Palette ===
 object IdeColors {
-    // Backgrounds
-    val bgPrimary = Color(0xFF1E1F22)
-    val bgSecondary = Color(0xFF2B2D30)
-    val bgEditor = Color(0xFF1E1F22)
-    val bgToolbar = Color(0xFF3C3F41)
-    val bgTab = Color(0xFF2B2D30)
-    val bgTabActive = Color(0xFF1E1F22)
-    val bgSidebar = Color(0xFF2B2D30)
-    val bgStatusBar = Color(0xFF3C3F41)
-    val bgInput = Color(0xFF45494A)
-    val bgHover = Color(0xFF2E436E)
-    val bgSelection = Color(0xFF214283)
-    val bgPopup = Color(0xFF3C3F41)
+    // Backgrounds — pure black & near-black
+    val bgPrimary = Color(0xFF000000)
+    val bgSecondary = Color(0xFF0A0A0A)
+    val bgEditor = Color(0xFF000000)
+    val bgToolbar = Color(0xFF050505)
+    val bgTab = Color(0xFF0A0A0A)
+    val bgTabActive = Color(0xFF001A00)
+    val bgSidebar = Color(0xFF050505)
+    val bgStatusBar = Color(0xFF001100)
+    val bgInput = Color(0xFF0D0D0D)
+    val bgHover = Color(0xFF001A00)
+    val bgSelection = Color(0xFF003300)
+    val bgPopup = Color(0xFF0A0F0A)
 
-    // Borders
-    val border = Color(0xFF323232)
-    val borderActive = Color(0xFF4E94CE)
+    // Borders — dim neon green
+    val border = Color(0xFF0D3B0D)
+    val borderActive = Color(0xFF00FF41)
 
-    // Text - Code Editor colors
-    val textPrimary = Color(0xFFA9B7C6)
-    val textSecondary = Color(0xFF808080)
-    val textKeyword = Color(0xFFCC7832)
-    val textString = Color(0xFF6A8759)
-    val textNumber = Color(0xFF6897BB)
-    val textComment = Color(0xFF808080)
-    val textFunction = Color(0xFFFFC66D)
-    val textType = Color(0xFFA9B7C6)
-    val textAnnotation = Color(0xFFBBB529)
-    val textConstant = Color(0xFF9876AA)
-    val textError = Color(0xFFFF6B68)
-    val textLink = Color(0xFF287BDE)
+    // Text — Matrix neon green as primary
+    val textPrimary = Color(0xFF00FF41)
+    val textSecondary = Color(0xFF00AA2A)
+    val textKeyword = Color(0xFF00FF41)
+    val textString = Color(0xFF00FFCC)      // cyan
+    val textNumber = Color(0xFFFF00FF)       // magenta/pink
+    val textComment = Color(0xFF005500)
+    val textFunction = Color(0xFF00FF41)
+    val textType = Color(0xFF00FFCC)
+    val textAnnotation = Color(0xFFFFFF00)   // yellow warning
+    val textConstant = Color(0xFFFF00FF)     // magenta
+    val textError = Color(0xFFFF0040)        // neon red
+    val textLink = Color(0xFF00CCFF)         // electric blue
 
-    // Accent
-    val accentBlue = Color(0xFF3574F0)
-    val accentGreen = Color(0xFF499C54)
-    val accentOrange = Color(0xFFCC7832)
-    val accentRed = Color(0xFFFF6B68)
-    val accentYellow = Color(0xFFFFC66D)
-    val accentPurple = Color(0xFF9876AA)
+    // Accents — neon palette
+    val accentBlue = Color(0xFF00CCFF)
+    val accentGreen = Color(0xFF00FF41)
+    val accentOrange = Color(0xFFFF6600)
+    val accentRed = Color(0xFFFF0040)
+    val accentYellow = Color(0xFFFFFF00)
+    val accentPurple = Color(0xFFFF00FF)
+    val accentCyan = Color(0xFF00FFCC)
 
-    // Gutter (line numbers area)
-    val gutter = Color(0xFF313335)
-    val gutterText = Color(0xFF606366)
+    // Gutter / line numbers
+    val gutter = Color(0xFF0A0A0A)
+    val gutterText = Color(0xFF004400)
 
     // Status indicators
-    val online = Color(0xFF499C54)
-    val away = Color(0xFFFFC66D)
-    val dnd = Color(0xFFFF6B68)
-    val offline = Color(0xFF606366)
+    val online = Color(0xFF00FF41)
+    val away = Color(0xFFFFFF00)
+    val dnd = Color(0xFFFF0040)
+    val offline = Color(0xFF333333)
+
+    // Neon glow accent (for special effects)
+    val neonGlow = Color(0xFF00FF41)
+    val neonGlowCyan = Color(0xFF00FFCC)
+    val neonGlowPink = Color(0xFFFF00FF)
+
+    // Scanline / CRT overlay
+    val scanline = Color(0x0800FF41)
+    val crtVignette = Color(0xFF000000)
 }
 
-// Monospace font family
 val JetBrainsMono = FontFamily.Monospace
 
-// IDE Typography
 object IdeTypography {
     val code = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 13.sp,
         color = IdeColors.textPrimary,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val codeSmall = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 11.sp,
         color = IdeColors.textSecondary,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val codeLarge = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 15.sp,
         color = IdeColors.textPrimary,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val heading = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 16.sp,
         fontWeight = FontWeight.Bold,
         color = IdeColors.textPrimary,
-        letterSpacing = 0.sp
+        letterSpacing = 2.sp
     )
     val tab = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 12.sp,
         color = IdeColors.textSecondary,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val statusBar = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 11.sp,
         color = IdeColors.textSecondary,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val terminal = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 13.sp,
         color = IdeColors.textPrimary,
-        letterSpacing = 0.sp,
+        letterSpacing = 1.sp,
         lineHeight = 20.sp
     )
     val keyword = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 13.sp,
         color = IdeColors.textKeyword,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val string = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 13.sp,
         color = IdeColors.textString,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val comment = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 13.sp,
         color = IdeColors.textComment,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
     )
     val lineNumber = TextStyle(
         fontFamily = JetBrainsMono,
         fontSize = 12.sp,
         color = IdeColors.gutterText,
-        letterSpacing = 0.sp
+        letterSpacing = 1.sp
+    )
+    val glitch = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontSize = 20.sp,
+        fontWeight = FontWeight.Bold,
+        color = IdeColors.neonGlow,
+        letterSpacing = 4.sp
+    )
+    val ascii = TextStyle(
+        fontFamily = JetBrainsMono,
+        fontSize = 10.sp,
+        color = IdeColors.accentGreen,
+        letterSpacing = 0.sp,
+        lineHeight = 12.sp
     )
 }
 
-// Material3 dark color scheme with IDE colors
-private val IdeDarkColorScheme = darkColorScheme(
-    primary = IdeColors.accentBlue,
-    onPrimary = Color.White,
+private val HackerDarkColorScheme = darkColorScheme(
+    primary = IdeColors.accentGreen,
+    onPrimary = Color.Black,
     primaryContainer = IdeColors.bgSelection,
-    secondary = IdeColors.accentGreen,
-    onSecondary = Color.White,
+    secondary = IdeColors.accentCyan,
+    onSecondary = Color.Black,
     background = IdeColors.bgPrimary,
     onBackground = IdeColors.textPrimary,
     surface = IdeColors.bgSecondary,
@@ -153,7 +171,7 @@ private val IdeDarkColorScheme = darkColorScheme(
     surfaceVariant = IdeColors.bgToolbar,
     onSurfaceVariant = IdeColors.textSecondary,
     error = IdeColors.accentRed,
-    onError = Color.White,
+    onError = Color.Black,
     outline = IdeColors.border,
     outlineVariant = IdeColors.border
 )
@@ -161,7 +179,7 @@ private val IdeDarkColorScheme = darkColorScheme(
 @Composable
 fun DevTalkTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = IdeDarkColorScheme,
+        colorScheme = HackerDarkColorScheme,
         typography = Typography(
             bodyLarge = IdeTypography.code,
             bodyMedium = IdeTypography.code,

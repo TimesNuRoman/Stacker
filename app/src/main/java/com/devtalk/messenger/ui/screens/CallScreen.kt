@@ -12,10 +12,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.devtalk.messenger.data.model.CallStatus
 import com.devtalk.messenger.data.model.CallType
@@ -40,13 +40,33 @@ fun CallScreen(
     onToggleSpeaker: () -> Unit,
     onEndCall: () -> Unit
 ) {
-    var dotsCount by remember { mutableStateOf(0) }
+    var dotsCount by remember { mutableIntStateOf(0) }
 
-    // Animated dots for connecting
+    // Pulse animation for the ring indicator
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseAlpha"
+    )
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+
     LaunchedEffect(callStatus) {
         if (callStatus == CallStatus.RINGING) {
             while (true) {
-                delay(500)
+                delay(400)
                 dotsCount = (dotsCount + 1) % 4
             }
         }
@@ -55,221 +75,238 @@ fun CallScreen(
     val dots = ".".repeat(dotsCount)
     val remoteName = if (isOutgoing) calleeName else callerName
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(IdeColors.bgPrimary)
     ) {
-        // Toolbar
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp)
-                .background(IdeColors.bgToolbar)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (callType == CallType.VIDEO) Icons.Default.Videocam else Icons.Default.Phone,
-                contentDescription = null,
-                tint = IdeColors.accentGreen,
-                modifier = Modifier.size(16.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "DevTalk — ${callType.name} Call",
-                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary),
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Divider(color = IdeColors.border, thickness = 1.dp)
+        // Matrix rain
+        MatrixRain(alpha = 0.03f, density = 12)
 
-        // Tab bar
-        IdeTabBar(
-            tabs = listOf(
-                TabItem(
-                    "$remoteName.call",
-                    icon = if (callType == CallType.VIDEO) Icons.Default.Videocam else Icons.Default.Phone
-                )
-            ),
-            selectedIndex = 0,
-            onTabSelected = {}
-        )
-
-        // Call content
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(IdeColors.bgEditor),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            // Terminal-style call info
-            Column(
-                modifier = Modifier
-                    .padding(32.dp)
-                    .clip(RoundedCornerShape(3.dp))
-                    .background(IdeColors.bgSecondary)
-                    .border(1.dp, IdeColors.border, RoundedCornerShape(3.dp))
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // ASCII art phone/video icon
-                if (callType == CallType.VIDEO) {
-                    Text(
-                        text = """
-                            ╔═══════════════╗
-                            ║   📹 VIDEO    ║
-                            ║               ║
-                            ║    ┌─────┐    ║
-                            ║    │ 👤  │    ║
-                            ║    └─────┘    ║
-                            ║               ║
-                            ╚═══════════════╝
-                        """.trimIndent(),
-                        style = IdeTypography.codeSmall.copy(color = IdeColors.accentBlue)
-                    )
-                } else {
-                    Text(
-                        text = """
-                            ╔═══════════════╗
-                            ║   📞 AUDIO    ║
-                            ║               ║
-                            ║    ╭─────╮    ║
-                            ║    │ 🎙️  │    ║
-                            ║    ╰─────╯    ║
-                            ║               ║
-                            ╚═══════════════╝
-                        """.trimIndent(),
-                        style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Call code representation
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(color = IdeColors.textKeyword)) { append("fun ") }
-                        withStyle(SpanStyle(color = IdeColors.textFunction)) { append("call") }
-                        withStyle(SpanStyle(color = IdeColors.textPrimary)) { append("(") }
-                        withStyle(SpanStyle(color = IdeColors.textString)) { append("\"$remoteName\"") }
-                        withStyle(SpanStyle(color = IdeColors.textPrimary)) { append(") {") }
-                    },
-                    style = IdeTypography.codeLarge
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Status
-                val statusText = when (callStatus) {
-                    CallStatus.RINGING -> if (isOutgoing) "    // Calling$dots" else "    // Incoming$dots"
-                    CallStatus.ACCEPTED -> "    // Connected ✓"
-                    CallStatus.REJECTED -> "    // Call rejected ✗"
-                    CallStatus.ENDED -> "    // Call ended"
-                    CallStatus.BUSY -> "    // User busy"
-                }
-                val statusColor = when (callStatus) {
-                    CallStatus.RINGING -> IdeColors.accentYellow
-                    CallStatus.ACCEPTED -> IdeColors.accentGreen
-                    CallStatus.REJECTED, CallStatus.ENDED -> IdeColors.accentRed
-                    CallStatus.BUSY -> IdeColors.accentOrange
-                }
-
-                Text(
-                    text = statusText,
-                    style = IdeTypography.code.copy(color = statusColor)
-                )
-
-                if (callStatus == CallStatus.ACCEPTED) {
-                    Text(
-                        text = "    duration = ${formatDuration(callDuration)}",
-                        style = IdeTypography.code.copy(color = IdeColors.textNumber)
-                    )
-                }
-
-                Text(
-                    text = "}",
-                    style = IdeTypography.codeLarge.copy(color = IdeColors.textKeyword)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Call controls
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Toolbar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                    .height(36.dp)
+                    .background(IdeColors.bgToolbar)
+                    .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Mute button
-                CallControlButton(
-                    icon = if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                    label = if (isMuted) "unmute()" else "mute()",
-                    isActive = isMuted,
-                    activeColor = IdeColors.accentRed,
-                    onClick = onToggleMute
+                Text(
+                    text = if (callType == CallType.VIDEO) "📹" else "📡",
+                    style = IdeTypography.code
                 )
-
-                // Camera toggle (video call only)
-                if (callType == CallType.VIDEO) {
-                    CallControlButton(
-                        icon = if (isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
-                        label = if (isCameraOff) "camOn()" else "camOff()",
-                        isActive = isCameraOff,
-                        activeColor = IdeColors.accentRed,
-                        onClick = onToggleCamera
-                    )
-                }
-
-                // Speaker
-                CallControlButton(
-                    icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeDown,
-                    label = if (isSpeakerOn) "speakerOff()" else "speakerOn()",
-                    isActive = isSpeakerOn,
-                    activeColor = IdeColors.accentBlue,
-                    onClick = onToggleSpeaker
-                )
-
-                // End call
-                CallControlButton(
-                    icon = Icons.Default.CallEnd,
-                    label = "endCall()",
-                    isActive = true,
-                    activeColor = IdeColors.accentRed,
-                    isEndCall = true,
-                    onClick = onEndCall
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "[ ${callType.name} CHANNEL :: $remoteName ]",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen),
+                    modifier = Modifier.weight(1f)
                 )
             }
-        }
+            NeonDivider()
 
-        // Status bar
-        Divider(color = IdeColors.border, thickness = 1.dp)
-        IdeStatusBar(
-            items = listOf(
-                StatusBarItem(
-                    text = "${callType.name.lowercase()} call",
-                    icon = if (callType == CallType.VIDEO) Icons.Default.Videocam else Icons.Default.Phone,
-                    color = IdeColors.accentGreen
+            // Tab
+            IdeTabBar(
+                tabs = listOf(
+                    TabItem(
+                        "#$remoteName.${callType.name.lowercase()}",
+                        icon = if (callType == CallType.VIDEO) Icons.Default.Videocam else Icons.Default.Phone
+                    )
                 ),
-                StatusBarItem(
-                    text = callStatus.name.lowercase(),
-                    color = when (callStatus) {
+                selectedIndex = 0,
+                onTabSelected = {}
+            )
+
+            // Call content
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // Signal visualization
+                Box(
+                    modifier = Modifier
+                        .size((120 * pulseScale).dp)
+                        .clip(CircleShape)
+                        .drawBehind {
+                            // Outer pulse glow
+                            drawCircle(
+                                color = IdeColors.accentGreen.copy(alpha = pulseAlpha * 0.15f),
+                                radius = size.minDimension / 2
+                            )
+                            // Neon ring
+                            drawCircle(
+                                color = IdeColors.accentGreen.copy(alpha = pulseAlpha * 0.6f),
+                                radius = size.minDimension / 2,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx())
+                            )
+                            // Inner ring
+                            drawCircle(
+                                color = IdeColors.accentCyan.copy(alpha = 0.3f),
+                                radius = size.minDimension / 3,
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(1.dp.toPx())
+                            )
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = if (callType == CallType.VIDEO) "📹" else "📡",
+                            style = IdeTypography.glitch.copy(fontSize = 32.sp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Call info panel
+                HackerPanel(
+                    modifier = Modifier.padding(horizontal = 40.dp),
+                    borderColor = when (callStatus) {
                         CallStatus.RINGING -> IdeColors.accentYellow
                         CallStatus.ACCEPTED -> IdeColors.accentGreen
                         else -> IdeColors.accentRed
                     }
-                ),
-                StatusBarItem(text = "", fillWeight = true),
-                StatusBarItem(
-                    text = remoteName,
-                    color = IdeColors.textPrimary
+                ) {
+                    Text(
+                        text = "╔════════════════════════════╗",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.border)
+                    )
+                    Text(
+                        text = "║  ${callType.name} CHANNEL ACTIVE      ║",
+                        style = IdeTypography.codeSmall.copy(
+                            color = if (callStatus == CallStatus.ACCEPTED) IdeColors.accentGreen
+                            else IdeColors.accentYellow
+                        )
+                    )
+                    Text(
+                        text = "╠════════════════════════════╣",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.border)
+                    )
+                    Text(
+                        text = "║ TARGET : $remoteName",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
+                    )
+
+                    val statusText = when (callStatus) {
+                        CallStatus.RINGING -> if (isOutgoing) "CALLING$dots" else "INCOMING$dots"
+                        CallStatus.ACCEPTED -> "CONNECTED ✓"
+                        CallStatus.REJECTED -> "REJECTED ✗"
+                        CallStatus.ENDED -> "TERMINATED"
+                        CallStatus.BUSY -> "TARGET BUSY"
+                    }
+                    val statusColor = when (callStatus) {
+                        CallStatus.RINGING -> IdeColors.accentYellow
+                        CallStatus.ACCEPTED -> IdeColors.accentGreen
+                        else -> IdeColors.accentRed
+                    }
+
+                    Text(
+                        text = "║ STATUS : $statusText",
+                        style = IdeTypography.codeSmall.copy(color = statusColor)
+                    )
+
+                    if (callStatus == CallStatus.ACCEPTED) {
+                        Text(
+                            text = "║ TIME   : ${formatDuration(callDuration)}",
+                            style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)
+                        )
+                        Text(
+                            text = "║ CRYPTO : E2E / AES-256",
+                            style = IdeTypography.codeSmall.copy(color = IdeColors.textComment)
+                        )
+                    }
+
+                    Text(
+                        text = "╚════════════════════════════╝",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.border)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(40.dp))
+
+                // Call controls
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CallControlButton(
+                        icon = if (isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                        label = if (isMuted) "UNMUTE" else "MUTE",
+                        isActive = isMuted,
+                        activeColor = IdeColors.accentRed,
+                        inactiveColor = IdeColors.accentGreen,
+                        onClick = onToggleMute
+                    )
+
+                    if (callType == CallType.VIDEO) {
+                        CallControlButton(
+                            icon = if (isCameraOff) Icons.Default.VideocamOff else Icons.Default.Videocam,
+                            label = if (isCameraOff) "CAM ON" else "CAM OFF",
+                            isActive = isCameraOff,
+                            activeColor = IdeColors.accentRed,
+                            inactiveColor = IdeColors.accentCyan,
+                            onClick = onToggleCamera
+                        )
+                    }
+
+                    CallControlButton(
+                        icon = if (isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeDown,
+                        label = if (isSpeakerOn) "SPK OFF" else "SPK ON",
+                        isActive = isSpeakerOn,
+                        activeColor = IdeColors.accentCyan,
+                        inactiveColor = IdeColors.textSecondary,
+                        onClick = onToggleSpeaker
+                    )
+
+                    CallControlButton(
+                        icon = Icons.Default.CallEnd,
+                        label = "END",
+                        isActive = true,
+                        activeColor = IdeColors.accentRed,
+                        inactiveColor = IdeColors.accentRed,
+                        isEndCall = true,
+                        onClick = onEndCall
+                    )
+                }
+            }
+
+            // Status bar
+            IdeStatusBar(
+                items = listOf(
+                    StatusBarItem(
+                        text = "${callType.name} CHANNEL",
+                        icon = if (callType == CallType.VIDEO) Icons.Default.Videocam else Icons.Default.Phone,
+                        color = IdeColors.accentGreen
+                    ),
+                    StatusBarItem(
+                        text = callStatus.name,
+                        color = when (callStatus) {
+                            CallStatus.RINGING -> IdeColors.accentYellow
+                            CallStatus.ACCEPTED -> IdeColors.accentGreen
+                            else -> IdeColors.accentRed
+                        }
+                    ),
+                    StatusBarItem(text = "", fillWeight = true),
+                    StatusBarItem(
+                        text = "E2E",
+                        color = IdeColors.accentCyan
+                    ),
+                    StatusBarItem(
+                        text = remoteName,
+                        color = IdeColors.accentGreen
+                    )
                 )
             )
-        )
+        }
+
+        CrtOverlay()
     }
 }
 
@@ -279,9 +316,12 @@ private fun CallControlButton(
     label: String,
     isActive: Boolean,
     activeColor: Color,
+    inactiveColor: Color = IdeColors.textSecondary,
     isEndCall: Boolean = false,
     onClick: () -> Unit
 ) {
+    val color = if (isActive || isEndCall) activeColor else inactiveColor
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable(onClick = onClick)
@@ -290,20 +330,25 @@ private fun CallControlButton(
             modifier = Modifier
                 .size(if (isEndCall) 56.dp else 48.dp)
                 .clip(CircleShape)
-                .background(
-                    if (isActive || isEndCall) activeColor.copy(alpha = 0.2f) else IdeColors.bgInput
-                )
-                .border(
-                    1.dp,
-                    if (isActive || isEndCall) activeColor else IdeColors.border,
-                    CircleShape
-                ),
+                .background(color.copy(alpha = 0.08f))
+                .drawBehind {
+                    // Neon ring glow
+                    drawCircle(
+                        color = color.copy(alpha = 0.4f),
+                        radius = size.minDimension / 2,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(1.5f.dp.toPx())
+                    )
+                    drawCircle(
+                        color = color.copy(alpha = 0.1f),
+                        radius = size.minDimension / 2 + 4.dp.toPx()
+                    )
+                },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (isActive || isEndCall) activeColor else IdeColors.textSecondary,
+                tint = color,
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -311,8 +356,9 @@ private fun CallControlButton(
         Text(
             text = label,
             style = IdeTypography.codeSmall.copy(
-                color = if (isActive || isEndCall) activeColor else IdeColors.textComment,
-                fontSize = androidx.compose.ui.unit.TextUnit(9f, androidx.compose.ui.unit.TextUnitType.Sp)
+                color = color.copy(alpha = 0.8f),
+                fontSize = 9.sp,
+                letterSpacing = 1.sp
             )
         )
     }
@@ -323,3 +369,5 @@ private fun formatDuration(seconds: Long): String {
     val secs = seconds % 60
     return "%02d:%02d".format(mins, secs)
 }
+
+private val sp = androidx.compose.ui.unit.sp

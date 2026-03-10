@@ -43,16 +43,16 @@ enum class UserStatus {
     ONLINE, AWAY, DO_NOT_DISTURB, OFFLINE;
 
     fun toDisplayString(): String = when (this) {
-        ONLINE -> "● online"
-        AWAY -> "◐ away"
-        DO_NOT_DISTURB -> "○ dnd"
-        OFFLINE -> "○ offline"
+        ONLINE -> "● ACTIVE"
+        AWAY -> "◐ GHOST"
+        DO_NOT_DISTURB -> "○ STEALTH"
+        OFFLINE -> "○ DARK"
     }
 
     fun toIdeString(): String = when (this) {
-        ONLINE -> "BUILD SUCCESSFUL"
-        AWAY -> "IDLE"
-        DO_NOT_DISTURB -> "DO NOT DISTURB"
-        OFFLINE -> "DISCONNECTED"
+        ONLINE -> "ONLINE"
+        AWAY -> "GHOST MODE"
+        DO_NOT_DISTURB -> "STEALTH"
+        OFFLINE -> "DARK"
     }
 }

@@ -1,47 +1,62 @@
 # DevTalk Messenger
 
 ```
-╔══════════════════════════════════════╗
-║                                      ║
-║         ██████╗ ████████╗            ║
-║         ██╔══██╗╚══██╔══╝            ║
-║         ██║  ██║   ██║               ║
-║         ██║  ██║   ██║               ║
-║         ██████╔╝   ██║               ║
-║         ╚═════╝    ╚═╝               ║
-║                                      ║
-║          D E V T A L K               ║
-║                                      ║
-╚══════════════════════════════════════╝
+ ██████╗ ███████╗██╗   ██╗████████╗ █████╗ ██╗     ██╗  ██╗
+ ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔══██╗██║     ██║ ██╔╝
+ ██║  ██║█████╗  ██║   ██║   ██║   ███████║██║     █████╔╝ 
+ ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══██║██║     ██╔═██╗ 
+ ██████╔╝███████╗ ╚████╔╝    ██║   ██║  ██║███████╗██║  ██╗
+ ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+             ENCRYPTED · ANONYMOUS · EPHEMERAL
 ```
 
-**An ephemeral, IDE-themed Android messenger for developers.**
+**An ephemeral, hacker-themed Android messenger with a cyberpunk aesthetic.**
 
-DevTalk is a zero-registration messenger with audio/video calls, designed to look and feel like an IDE (IntelliJ IDEA / Darcula theme). No emails, no passwords, no phone numbers — just pick a unique username and start chatting.
+DevTalk is a zero-registration messenger with audio/video calls. The entire UI is designed in a stereotypical hacker/cyberpunk style — neon green on pure black, Matrix rain effects, CRT scanlines, glitch text, ASCII art terminals, and surveillance-grade UI metaphors.
 
 ## Features
 
 ### Core
-- **Zero Registration** — Pick a unique username on first launch. That's your identity.
-- **Ephemeral Sessions** — Exit = account deleted permanently. No traces left.
-- **Real-time Messaging** — Firebase Realtime Database powered instant messaging.
-- **Audio & Video Calls** — WebRTC-based peer-to-peer calls with Firebase signaling.
+- **Zero Registration** — Pick a unique handle. No email, phone, or password.
+- **Ephemeral Sessions** — Exit = total wipe. All data shredded. No recovery.
+- **Real-time Messaging** — Firebase Realtime Database, encrypted channels.
+- **Audio & Video Calls** — WebRTC P2P with Firebase signaling.
 
 ### Sharing
-- **QR Code Profile** — Generate and share your unique QR code for instant contact exchange.
-- **Deep Link Sharing** — Share `devtalk://profile/username` links via any app.
-- **QR Scanner** — Scan someone's QR code to add them instantly.
+- **QR Code Profile** — Neon green QR on black background for agent identification.
+- **Deep Link Sharing** — Share `devtalk://profile/handle` links.
+- **QR Scanner** — Camera scanner with neon corner crosshairs.
 
-### IDE-Themed UI
-- **Darcula Dark Theme** — Modeled after IntelliJ IDEA's iconic color scheme.
-- **Monospace Typography** — All text in JetBrains Mono / system monospace.
-- **Tab-based Navigation** — Chats open as editor tabs, just like code files.
-- **File Tree Sidebar** — Contacts and chats organized as a project tree.
-- **Line Numbers** — Messages displayed with gutter line numbers.
-- **Terminal-style Input** — Type messages in a terminal prompt (`user@devtalk:~$`).
-- **Code Syntax Highlighting** — Messages styled as Kotlin code blocks.
-- **Status Bar** — IDE status bar with connection info, user status, and stats.
-- **Boot Sequence** — Welcome screen features a terminal boot animation.
+### Hacker-Themed UI
+
+The entire app looks like something straight out of a hacking movie:
+
+- **Pure Black + Neon Green** — Matrix-inspired color scheme with cyan, magenta, and red accents
+- **Matrix Rain** — Animated Japanese/binary character rain in the background
+- **CRT Scanlines** — Horizontal scanline overlay + vignette effect on every screen
+- **Glitch Text** — Logo and key text randomly glitches with RGB chromatic aberration
+- **ASCII Art** — Block-letter logos, box-drawing characters for panels and borders
+- **Neon Glow Borders** — All panels and inputs have glowing neon edge effects
+- **Terminal Boot Sequence** — Welcome screen simulates a hacker system boot with Tor routing, encryption init, and key generation
+- **Hacker Prompt** — `root@devtalk:~#` style input prompts
+- **File Tree as "Nodes"** — Contacts are "agents", chats are "secure channels"
+- **Line-Numbered Messages** — Every message has a gutter with line numbers
+- **IRC-style Chat** — Messages shown as `[HH:mm:ss] <username>` format
+- **Surveillance Call UI** — Calls show pulsing neon rings, signal indicators, and "CHANNEL ACTIVE" panels
+- **Self-Destruct Dialog** — Logout shows a pulsing red-bordered warning with `rm -rf` command
+- **Status Bar HUD** — Bottom bar shows encryption status, agent count, channel count
+- **Agent Identity Card** — Profile displayed as ASCII box-art with encryption info
+
+## Screenshots Layout
+
+| Screen | Description |
+|--------|-------------|
+| Welcome | Terminal boot sequence with Matrix rain, ASCII logo, neon prompt |
+| Main | Sidebar with nodes/agents tree, tabbed encrypted channels, IRC-style chat |
+| Profile | Agent identity card, neon QR code, share link, danger zone |
+| QR Scanner | Camera with neon corner targeting, crosshair overlay |
+| Call | Pulsing signal rings, channel status panel, neon control buttons |
+| Logout | Pulsing red self-destruct confirmation with wipe command |
 
 ## Tech Stack
 
@@ -50,7 +65,7 @@ DevTalk is a zero-registration messenger with audio/video calls, designed to loo
 | Language | Kotlin |
 | UI | Jetpack Compose + Material3 |
 | Architecture | MVVM + Hilt DI |
-| Backend | Firebase (Auth, Realtime Database) |
+| Backend | Firebase (Anonymous Auth, Realtime Database) |
 | Calls | WebRTC (stream-webrtc-android) |
 | QR Codes | ZXing + ML Kit Barcode Scanning |
 | Camera | CameraX |
@@ -60,39 +75,61 @@ DevTalk is a zero-registration messenger with audio/video calls, designed to loo
 
 ```
 app/src/main/java/com/devtalk/messenger/
-├── DevTalkApp.kt              # Application class (Hilt)
-├── MainActivity.kt            # Entry point + navigation host
+├── DevTalkApp.kt                    # Hilt application
+├── MainActivity.kt                  # Navigation host + logout dialog
 ├── data/
 │   ├── model/
-│   │   ├── User.kt            # User data model
-│   │   ├── Message.kt         # Message with terminal formatting
-│   │   ├── Chat.kt            # Chat/conversation model
-│   │   ├── Contact.kt         # Contact with tree entry
-│   │   └── CallState.kt       # WebRTC call signaling model
+│   │   ├── User.kt                  # Agent model (ONLINE/GHOST/STEALTH/DARK)
+│   │   ├── Message.kt               # Message with IRC formatting
+│   │   ├── Chat.kt                  # Encrypted channel model
+│   │   ├── Contact.kt               # Agent contact
+│   │   └── CallState.kt             # Call signaling model
 │   └── repository/
-│       ├── FirebaseRepository.kt   # All Firebase operations
-│       └── UserPreferences.kt      # Local DataStore
+│       ├── FirebaseRepository.kt     # Firebase CRUD + realtime observers
+│       └── UserPreferences.kt        # Local session DataStore
 ├── di/
-│   └── AppModule.kt           # Hilt dependency injection
+│   └── AppModule.kt                 # Hilt DI module
 ├── ui/
-│   ├── MainViewModel.kt       # Main state management
+│   ├── MainViewModel.kt             # State management
 │   ├── theme/
-│   │   └── IdeTheme.kt        # Darcula colors & typography
+│   │   └── IdeTheme.kt              # Hacker color palette + neon typography
 │   ├── components/
-│   │   └── IdeComponents.kt   # Reusable IDE-style widgets
+│   │   └── IdeComponents.kt         # CRT overlay, Matrix rain, glitch text,
+│   │                                  neon borders, hacker panels, terminal lines,
+│   │                                  blinking cursor, typewriter effect
 │   └── screens/
-│       ├── WelcomeScreen.kt   # Boot sequence + username entry
-│       ├── MainScreen.kt      # IDE layout (sidebar, tabs, editor)
-│       ├── ProfileScreen.kt   # QR code + profile as code
-│       ├── QrScannerScreen.kt # Camera-based QR scanning
-│       ├── CallScreen.kt      # Audio/video call UI
-│       └── LogoutDialog.kt    # Destructive logout confirmation
+│       ├── WelcomeScreen.kt         # Boot sequence + handle entry
+│       ├── MainScreen.kt            # Hacker IDE layout (nodes/channels)
+│       ├── ProfileScreen.kt         # Agent identity card + neon QR
+│       ├── QrScannerScreen.kt       # Targeting scanner with crosshairs
+│       ├── CallScreen.kt            # Surveillance-style call UI
+│       └── LogoutDialog.kt          # Self-destruct confirmation
 ├── webrtc/
-│   ├── WebRtcManager.kt       # WebRTC peer connection manager
-│   └── CallService.kt         # Foreground service for calls
+│   ├── WebRtcManager.kt             # WebRTC peer connection
+│   └── CallService.kt               # Foreground call service
 └── util/
-    └── QrCodeUtils.kt         # QR generation & deep link parsing
+    └── QrCodeUtils.kt               # Neon QR generation + deep links
 ```
+
+## Custom Visual Effects
+
+### Matrix Rain (`MatrixRain`)
+Animated columns of Japanese katakana and binary digits falling like in The Matrix. Configurable density, speed, and opacity.
+
+### CRT Overlay (`CrtOverlay`)
+Horizontal scanline effect + radial vignette darkening, simulating an old CRT monitor.
+
+### Glitch Text (`GlitchText`)
+Text that randomly glitches — characters replaced with `█▓▒░╠╣╦╩═║` symbols. Includes RGB chromatic aberration with cyan/magenta offset layers.
+
+### Neon Glow Borders (`neonBorder`)
+All panels, inputs, and interactive elements have a soft outer glow + crisp neon border line.
+
+### Blinking Cursor (`BlinkingCursor`)
+Classic terminal blinking block cursor `█`.
+
+### Typewriter Effect (`TypewriterText`)
+Text that types out character by character with a blinking cursor.
 
 ## Setup
 
@@ -104,17 +141,13 @@ app/src/main/java/com/devtalk/messenger/
 
 ### Firebase Setup
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project (or use existing)
-3. Add an Android app with package name: `com.devtalk.messenger`
-4. Download `google-services.json` and place it in `app/`
-5. Enable **Anonymous Authentication**:
-   - Firebase Console → Authentication → Sign-in method → Anonymous → Enable
-6. Set up **Realtime Database**:
-   - Firebase Console → Realtime Database → Create Database
-   - Start in **test mode** (or configure rules below)
+1. [Firebase Console](https://console.firebase.google.com/) → Create project
+2. Add Android app: `com.devtalk.messenger`
+3. Download `google-services.json` → place in `app/`
+4. Enable **Anonymous Authentication**
+5. Create **Realtime Database** (test mode for development)
 
-### Database Rules (Production)
+### Database Rules
 
 ```json
 {
@@ -133,7 +166,7 @@ app/src/main/java/com/devtalk/messenger/
     },
     "chats": {
       "$chatId": {
-        ".read": "auth != null && (data.child('participants').child(0).val() === auth.uid || data.child('participants').child(1).val() === auth.uid)",
+        ".read": "auth != null",
         ".write": "auth != null"
       }
     },
@@ -156,62 +189,43 @@ app/src/main/java/com/devtalk/messenger/
 ### Build & Run
 
 ```bash
-# Clone the repository
 git clone <repo-url>
 cd DevTalk
-
-# Place your google-services.json in app/
 cp /path/to/google-services.json app/
-
-# Build debug APK
 ./gradlew assembleDebug
-
-# Install on connected device
 ./gradlew installDebug
 ```
 
 ## How It Works
 
-### Registration Flow
-1. Launch app → Terminal boot sequence plays
-2. Enter a unique username (3+ chars, alphanumeric + `_` + `-`)
-3. Firebase Anonymous Auth creates a session
-4. User profile stored in Realtime Database
-5. Done! You're in the IDE.
+### Registration
+1. Launch → Terminal boot sequence (Tor routing, crypto init)
+2. Enter unique handle at `root@devtalk:~#` prompt
+3. Firebase Anonymous Auth → session created
+4. You're in. No traces.
 
-### Adding Contacts
-- **QR Code**: Open Profile → Show QR → Other person scans it
-- **Share Link**: Copy `devtalk://profile/username` and send it
-- **Manual**: In Scanner screen, type username directly
+### Adding Agents
+- **QR Scan**: Profile → Show neon QR → Other person scans with crosshair scanner
+- **Share Link**: Copy `devtalk://profile/handle`
+- **Manual**: Scanner → type handle → LOCATE
 
 ### Messaging
-- Select a contact from the project tree (sidebar)
-- Chat opens as an editor tab with `.chat` extension
-- Messages appear as Kotlin function calls with line numbers
-- Terminal-style input prompt at the bottom
+- Select agent from "NODES" tree → channel opens as tab
+- Messages displayed IRC-style with timestamps and line numbers
+- Terminal prompt input: `handle@dtalk:~#`
 
 ### Calls
-- Open a chat → Click phone/video icon in the breadcrumb bar
-- WebRTC establishes P2P connection via Firebase signaling
-- Foreground service keeps call alive in background
+- Open channel → Voice/Video icons in breadcrumb bar
+- WebRTC P2P through Firebase signaling
+- Pulsing neon ring visualization during call
+- Foreground service for background persistence
 
-### Logout = Delete
-- Click power button (top-right) or go to Profile → Danger Zone
-- Confirmation dialog warns about permanent deletion
-- All data (user, contacts, messages) is erased from Firebase
-- Local session cleared, back to Welcome screen
-
-## Design Philosophy
-
-The UI is intentionally designed to look like IntelliJ IDEA:
-- **Dark color scheme** matches Darcula theme exactly
-- **Monospace everything** — because we're developers
-- **File metaphors** — chats are `.chat` files, contacts are in folders
-- **Terminal prompts** — message input feels like a command line
-- **Code blocks** — messages formatted as Kotlin function calls
-- **Status bar** — shows connection status like an IDE build status
-- **Line numbers** — because every good editor has them
+### Self-Destruct
+- Click ☠ power button or Profile → Danger Zone
+- Pulsing red warning dialog with `rm -rf` command
+- Confirm → all data wiped from Firebase + local storage
+- Back to boot screen. No traces.
 
 ## License
 
-MIT License. Built with ❤️ for developers.
+MIT. Built for developers who live in the terminal. ☠

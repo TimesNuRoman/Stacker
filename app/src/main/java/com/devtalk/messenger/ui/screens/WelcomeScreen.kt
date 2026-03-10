@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -28,290 +29,341 @@ fun WelcomeScreen(
     error: String? = null
 ) {
     var username by remember { mutableStateOf("") }
-    var showCursor by remember { mutableStateOf(true) }
     var bootLines by remember { mutableStateOf(listOf<String>()) }
     var showInput by remember { mutableStateOf(false) }
-
-    // Blinking cursor effect
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(530)
-            showCursor = !showCursor
-        }
-    }
+    var showSkull by remember { mutableStateOf(false) }
+    var phase by remember { mutableIntStateOf(0) }
 
     // Boot sequence animation
     LaunchedEffect(Unit) {
+        delay(600)
+
+        // Phase 1: Skull
+        showSkull = true
+        delay(1500)
+        phase = 1
+
+        // Phase 2: Boot lines
         val lines = listOf(
-            "DevTalk Messenger v1.0.0",
-            "Copyright (c) 2026 DevTalk Project",
+            "[SYS] DevTalk Secure Shell v1.0.0",
+            "[SYS] ████████████████████████████",
             "",
-            "Initializing secure connection...",
-            "Loading encryption modules... OK",
-            "WebRTC engine... READY",
-            "Peer-to-peer tunneling... ACTIVE",
+            "[INIT] Routing through Tor nodes...",
+            "[INIT] Node 1: 185.220.101.██  OK",
+            "[INIT] Node 2: 51.15.███.███   OK",
+            "[INIT] Node 3: 198.98.██.███   OK",
+            "[CRYPT] AES-256-GCM initialized",
+            "[CRYPT] RSA-4096 keypair generated",
+            "[CRYPT] Perfect forward secrecy... ACTIVE",
             "",
-            "// No registration required.",
-            "// Pick a unique handle. That's it.",
-            "// Exit = account deleted. No traces.",
-            ""
+            "[NET] WebRTC tunnel... READY",
+            "[NET] P2P mesh network... ONLINE",
+            "[NET] Signal encrypted... ✓",
+            "",
+            "[WARN] No identity found.",
+            "[WARN] Anonymous session required.",
+            "[SYS] Choose your handle. No traces.",
+            "[SYS] Exit = total wipe. No recovery.",
         )
         for (line in lines) {
             bootLines = bootLines + line
-            delay(if (line.isEmpty()) 100 else 120)
+            delay(if (line.isEmpty()) 60 else 80)
         }
+        delay(200)
         showInput = true
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(IdeColors.bgPrimary)
     ) {
-        // Title bar
-        IdeToolbar(title = "DevTalk — Initialize Session")
+        // Matrix rain background
+        MatrixRain(alpha = 0.04f, density = 15)
 
-        // Tab bar
-        IdeTabBar(
-            tabs = listOf(
-                TabItem("welcome.sh", icon = Icons.Default.Terminal),
-            ),
-            selectedIndex = 0,
-            onTabSelected = {}
-        )
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Toolbar
+            IdeToolbar(title = "DEVTALK :: SECURE INIT")
 
-        // Main content area
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
-            bootLines.forEachIndexed { index, line ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 1.dp)
-                ) {
-                    // Line number gutter
-                    Box(
-                        modifier = Modifier
-                            .width(48.dp)
-                            .background(IdeColors.gutter)
-                            .padding(horizontal = 8.dp, vertical = 2.dp),
-                        contentAlignment = Alignment.CenterEnd
-                    ) {
-                        Text(
-                            text = "${index + 1}",
-                            style = IdeTypography.lineNumber
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .heightIn(min = 20.dp)
-                            .background(IdeColors.border)
-                    )
+            // Tab bar
+            IdeTabBar(
+                tabs = listOf(
+                    TabItem("init.sh", icon = Icons.Default.Terminal),
+                ),
+                selectedIndex = 0,
+                onTabSelected = {}
+            )
 
-                    val style = when {
-                        line.startsWith("//") -> IdeTypography.comment
-                        line.contains("OK") || line.contains("READY") || line.contains("ACTIVE") ->
-                            IdeTypography.code.copy(color = IdeColors.accentGreen)
-                        line.startsWith("DevTalk") -> IdeTypography.code.copy(color = IdeColors.textKeyword)
-                        line.startsWith("Copyright") -> IdeTypography.code.copy(color = IdeColors.textComment)
-                        else -> IdeTypography.code
-                    }
-
-                    Text(
-                        text = line,
-                        style = style,
-                        modifier = Modifier.padding(start = 8.dp, top = 2.dp, bottom = 2.dp)
-                    )
-                }
-            }
-
-            // Input section
-            AnimatedVisibility(
-                visible = showInput,
-                enter = fadeIn() + slideInVertically()
+            // Main content
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 16.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(top = 8.dp)
+                // Skull ASCII art
+                AnimatedVisibility(
+                    visible = showSkull,
+                    enter = fadeIn(animationSpec = tween(800))
                 ) {
-                    // Prompt line
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 1.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(48.dp)
-                                .background(IdeColors.gutter)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Text(
-                                text = "${bootLines.size + 1}",
-                                style = IdeTypography.lineNumber
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .heightIn(min = 20.dp)
-                                .background(IdeColors.border)
-                        )
-
-                        Text(
-                            text = buildAnnotatedString {
-                                withStyle(SpanStyle(color = IdeColors.accentGreen)) {
-                                    append("guest")
-                                }
-                                withStyle(SpanStyle(color = IdeColors.textPrimary)) {
-                                    append("@")
-                                }
-                                withStyle(SpanStyle(color = IdeColors.textNumber)) {
-                                    append("devtalk")
-                                }
-                                withStyle(SpanStyle(color = IdeColors.textPrimary)) {
-                                    append(":~$ ")
-                                }
-                                withStyle(SpanStyle(color = IdeColors.textKeyword)) {
-                                    append("set_username ")
-                                }
-                            },
-                            style = IdeTypography.code,
-                            modifier = Modifier.padding(start = 8.dp, top = 2.dp)
-                        )
-                    }
-
-                    // Username input
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = ">",
-                            style = IdeTypography.code.copy(color = IdeColors.accentGreen)
-                        )
-                        IdeTextField(
-                            value = username,
-                            onValueChange = { newVal ->
-                                username = newVal.lowercase().filter { it.isLetterOrDigit() || it == '_' || it == '-' }
-                            },
-                            placeholder = "enter_username",
-                            modifier = Modifier.weight(1f)
-                        )
-                        IdeButton(
-                            text = "▶ Run",
-                            onClick = { onCreateAccount(username) },
-                            icon = Icons.Default.PlayArrow,
-                            color = IdeColors.accentGreen,
-                            enabled = username.length >= 3 && !isLoading
-                        )
-                    }
-
-                    // Error display
-                    error?.let {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "// ERROR: $it",
-                                style = IdeTypography.code.copy(color = IdeColors.accentRed)
-                            )
-                        }
-                    }
-
-                    // Loading indicator
-                    if (isLoading) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "Connecting to network...${if (showCursor) "█" else " "}",
-                                style = IdeTypography.code.copy(color = IdeColors.textComment)
-                            )
-                        }
-                    }
-
-                    // Rules / hints
-                    Spacer(modifier = Modifier.height(16.dp))
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(IdeColors.bgSecondary)
-                            .border(1.dp, IdeColors.border, RoundedCornerShape(3.dp))
-                            .padding(12.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        GlitchText(
+                            text = """
+    ██████╗ ███████╗██╗   ██╗████████╗ █████╗ ██╗     ██╗  ██╗
+    ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔══██╗██║     ██║ ██╔╝
+    ██║  ██║█████╗  ██║   ██║   ██║   ███████║██║     █████╔╝ 
+    ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══██║██║     ██╔═██╗ 
+    ██████╔╝███████╗ ╚████╔╝    ██║   ██║  ██║███████╗██║  ██╗
+    ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
+                            """.trimIndent(),
+                            style = IdeTypography.ascii.copy(
+                                color = IdeColors.accentGreen,
+                                fontSize = 6.sp
+                            ),
+                            glitchIntensity = 0.15f
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "/**",
-                            style = IdeTypography.comment
+                            text = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄",
+                            style = IdeTypography.ascii.copy(color = IdeColors.accentGreen.copy(alpha = 0.4f))
                         )
                         Text(
-                            text = " * Rules:",
-                            style = IdeTypography.comment
-                        )
-                        Text(
-                            text = " * - Username must be 3+ characters (a-z, 0-9, _, -)",
-                            style = IdeTypography.comment
-                        )
-                        Text(
-                            text = " * - Username must be unique across the network",
-                            style = IdeTypography.comment
-                        )
-                        Text(
-                            text = " * - No password, no email, no phone. Just a handle.",
-                            style = IdeTypography.comment
-                        )
-                        Text(
-                            text = " * - Closing the app = session destroyed",
-                            style = IdeTypography.comment
-                        )
-                        Text(
-                            text = " * - Share your QR / link to connect with others",
-                            style = IdeTypography.comment
-                        )
-                        Text(
-                            text = " */",
-                            style = IdeTypography.comment
+                            text = "ENCRYPTED  ·  ANONYMOUS  ·  EPHEMERAL",
+                            style = IdeTypography.codeSmall.copy(
+                                color = IdeColors.accentCyan,
+                                letterSpacing = 3.sp
+                            )
                         )
                     }
                 }
-            }
-        }
 
-        // Status bar
-        IdeStatusBar(
-            items = listOf(
-                StatusBarItem(
-                    text = "main",
-                    icon = Icons.Default.AccountTree,
-                    color = IdeColors.accentBlue
-                ),
-                StatusBarItem(text = "", fillWeight = true),
-                StatusBarItem(
-                    text = if (username.length >= 3) "✓ valid username" else "⚠ min 3 chars",
-                    color = if (username.length >= 3) IdeColors.accentGreen else IdeColors.textComment
-                ),
-                StatusBarItem(
-                    text = "UTF-8",
-                    color = IdeColors.textSecondary
-                ),
-                StatusBarItem(
-                    text = "Kotlin",
-                    color = IdeColors.textSecondary
+                // Boot log lines
+                AnimatedVisibility(
+                    visible = phase >= 1,
+                    enter = fadeIn()
+                ) {
+                    Column {
+                        bootLines.forEachIndexed { index, line ->
+                            val color = when {
+                                line.startsWith("[WARN]") -> IdeColors.accentYellow
+                                line.startsWith("[CRYPT]") -> IdeColors.accentCyan
+                                line.contains("OK") || line.contains("✓") ||
+                                        line.contains("ACTIVE") || line.contains("READY") ||
+                                        line.contains("ONLINE") -> IdeColors.accentGreen
+                                line.startsWith("[SYS]") && line.contains("█") -> IdeColors.accentGreen
+                                line.startsWith("[SYS]") -> IdeColors.textPrimary
+                                line.startsWith("[NET]") -> IdeColors.accentPurple
+                                line.startsWith("[INIT]") -> IdeColors.textSecondary
+                                else -> IdeColors.textPrimary
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 1.dp)
+                            ) {
+                                // Line number gutter
+                                Box(
+                                    modifier = Modifier
+                                        .width(40.dp)
+                                        .background(IdeColors.gutter)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) {
+                                    Text(
+                                        text = "${index + 1}",
+                                        style = IdeTypography.lineNumber
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .heightIn(min = 18.dp)
+                                        .background(IdeColors.border)
+                                )
+                                Text(
+                                    text = " $line",
+                                    style = IdeTypography.codeSmall.copy(color = color),
+                                    modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Input section
+                AnimatedVisibility(
+                    visible = showInput,
+                    enter = fadeIn() + slideInVertically { it / 2 }
+                ) {
+                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                        // Prompt
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = buildAnnotatedString {
+                                    withStyle(SpanStyle(color = IdeColors.accentRed)) { append("root") }
+                                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append("@") }
+                                    withStyle(SpanStyle(color = IdeColors.accentGreen)) { append("devtalk") }
+                                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append(":") }
+                                    withStyle(SpanStyle(color = IdeColors.accentCyan)) { append("~") }
+                                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append("# ") }
+                                    withStyle(SpanStyle(color = IdeColors.accentYellow)) { append("set_identity") }
+                                },
+                                style = IdeTypography.code
+                            )
+                            BlinkingCursor()
+                        }
+
+                        // Username input
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = ">>>",
+                                style = IdeTypography.code.copy(color = IdeColors.accentGreen)
+                            )
+                            IdeTextField(
+                                value = username,
+                                onValueChange = { newVal ->
+                                    username = newVal.lowercase().filter {
+                                        it.isLetterOrDigit() || it == '_' || it == '-'
+                                    }
+                                },
+                                placeholder = "enter_handle",
+                                modifier = Modifier.weight(1f)
+                            )
+                            IdeButton(
+                                text = "EXEC",
+                                onClick = { onCreateAccount(username) },
+                                icon = Icons.Default.PlayArrow,
+                                color = IdeColors.accentGreen,
+                                enabled = username.length >= 3 && !isLoading
+                            )
+                        }
+
+                        // Error
+                        error?.let {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "[ERROR] $it",
+                                    style = IdeTypography.code.copy(color = IdeColors.accentRed)
+                                )
+                            }
+                        }
+
+                        // Loading
+                        if (isLoading) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "[CONN] Establishing secure tunnel...",
+                                    style = IdeTypography.code.copy(color = IdeColors.accentCyan)
+                                )
+                                BlinkingCursor(color = IdeColors.accentCyan)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Rules panel
+                        HackerPanel(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            borderColor = IdeColors.accentGreen
+                        ) {
+                            Text(
+                                text = "┌─────────────────────────────────────┐",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.border)
+                            )
+                            Text(
+                                text = "│  PROTOCOL RULES                     │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
+                            )
+                            Text(
+                                text = "├─────────────────────────────────────┤",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.border)
+                            )
+                            Text(
+                                text = "│  ► Handle: 3+ chars (a-z 0-9 _ -)  │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
+                            )
+                            Text(
+                                text = "│  ► Must be unique across network    │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
+                            )
+                            Text(
+                                text = "│  ► No email. No phone. No password. │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
+                            )
+                            Text(
+                                text = "│  ► Session = volatile memory only   │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
+                            )
+                            Text(
+                                text = "│  ► EXIT = TOTAL WIPE. NO RECOVERY. │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
+                            )
+                            Text(
+                                text = "│  ► Share QR / link to connect       │",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
+                            )
+                            Text(
+                                text = "└─────────────────────────────────────┘",
+                                style = IdeTypography.codeSmall.copy(color = IdeColors.border)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Status bar
+            IdeStatusBar(
+                items = listOf(
+                    StatusBarItem(
+                        text = "SECURE",
+                        icon = Icons.Default.Lock,
+                        color = IdeColors.accentGreen
+                    ),
+                    StatusBarItem(text = "", fillWeight = true),
+                    StatusBarItem(
+                        text = if (username.length >= 3) "HANDLE VALID" else "MIN 3 CHARS",
+                        color = if (username.length >= 3) IdeColors.accentGreen else IdeColors.accentRed
+                    ),
+                    StatusBarItem(
+                        text = "E2E",
+                        color = IdeColors.accentCyan
+                    ),
+                    StatusBarItem(
+                        text = "AES-256",
+                        color = IdeColors.textComment
+                    )
                 )
             )
-        )
+        }
+
+        // CRT scanline overlay
+        CrtOverlay()
     }
 }
+
+private val sp = androidx.compose.ui.unit.sp

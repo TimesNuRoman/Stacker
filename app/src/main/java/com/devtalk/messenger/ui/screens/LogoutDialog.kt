@@ -1,5 +1,6 @@
 package com.devtalk.messenger.ui.screens
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,90 +23,109 @@ fun LogoutConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val infiniteTransition = rememberInfiniteTransition(label = "warn")
+    val warningAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.5f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "warningPulse"
+    )
+
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(4.dp))
-                .background(IdeColors.bgSecondary)
-                .border(1.dp, IdeColors.accentRed.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                .clip(RoundedCornerShape(2.dp))
+                .background(IdeColors.bgPrimary)
+                .neonBorder(IdeColors.accentRed.copy(alpha = warningAlpha))
                 .padding(0.dp)
         ) {
-            // Dialog title bar
+            // Title bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(IdeColors.bgToolbar)
+                    .background(IdeColors.accentRed.copy(alpha = 0.1f))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Warning,
-                    contentDescription = null,
-                    tint = IdeColors.accentRed,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "⚠ Confirm process.exit()",
+                    text = "☠",
                     style = IdeTypography.code.copy(color = IdeColors.accentRed)
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                GlitchText(
+                    text = "SELF-DESTRUCT SEQUENCE",
+                    style = IdeTypography.code.copy(
+                        color = IdeColors.accentRed,
+                        letterSpacing = 2.sp
+                    ),
+                    glitchIntensity = 0.2f
+                )
             }
-            Divider(color = IdeColors.border, thickness = 1.dp)
+            NeonDivider(color = IdeColors.accentRed)
 
             // Content
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    text = "/**",
-                    style = IdeTypography.comment
+                    text = "╔════════════════════════════════╗",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
                 )
                 Text(
-                    text = " * WARNING: This action is IRREVERSIBLE!",
-                    style = IdeTypography.comment.copy(color = IdeColors.accentRed)
+                    text = "║  ⚠  IRREVERSIBLE OPERATION  ⚠  ║",
+                    style = IdeTypography.codeSmall.copy(
+                        color = IdeColors.accentRed.copy(alpha = warningAlpha)
+                    )
                 )
                 Text(
-                    text = " *",
-                    style = IdeTypography.comment
+                    text = "╠════════════════════════════════╣",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
                 )
                 Text(
-                    text = " * Exiting will permanently delete:",
-                    style = IdeTypography.comment
+                    text = "║ WIPE TARGET:                   ║",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
                 )
                 Text(
-                    text = " * - Your account ($username)",
-                    style = IdeTypography.comment
+                    text = "║  → Agent: $username",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
                 )
                 Text(
-                    text = " * - All your messages",
-                    style = IdeTypography.comment
+                    text = "║  → All messages",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
                 )
                 Text(
-                    text = " * - All your contacts",
-                    style = IdeTypography.comment
+                    text = "║  → All contacts",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
                 )
                 Text(
-                    text = " * - Your profile data",
-                    style = IdeTypography.comment
+                    text = "║  → All session data",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
                 )
                 Text(
-                    text = " *",
-                    style = IdeTypography.comment
+                    text = "║  → Encryption keys",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
                 )
                 Text(
-                    text = " * There is NO way to recover this data.",
-                    style = IdeTypography.comment.copy(color = IdeColors.accentYellow)
+                    text = "╠════════════════════════════════╣",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
                 )
                 Text(
-                    text = " */",
-                    style = IdeTypography.comment
+                    text = "║  NO RECOVERY POSSIBLE.         ║",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
+                )
+                Text(
+                    text = "╚════════════════════════════════╝",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "rm -rf /home/$username/*",
-                    style = IdeTypography.code.copy(color = IdeColors.accentRed)
+                    text = "$ rm -rf /home/$username/* && shred -vfz",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -115,12 +135,12 @@ fun LogoutConfirmDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     IdeButton(
-                        text = "Cancel",
+                        text = "ABORT",
                         onClick = onDismiss,
-                        color = IdeColors.bgInput
+                        color = IdeColors.textComment
                     )
                     IdeButton(
-                        text = "Confirm Delete",
+                        text = "☠ CONFIRM WIPE",
                         onClick = onConfirm,
                         icon = Icons.Default.DeleteForever,
                         color = IdeColors.accentRed
@@ -130,3 +150,5 @@ fun LogoutConfirmDialog(
         }
     }
 }
+
+private val sp = androidx.compose.ui.unit.sp

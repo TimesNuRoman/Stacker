@@ -24,8 +24,8 @@ object QrCodeUtils {
     fun generateQrBitmap(
         content: String,
         size: Int = 512,
-        fgColor: Int = Color.parseColor("#A9B7C6"),  // IDE text color
-        bgColor: Int = Color.parseColor("#1E1F22")    // IDE bg color
+        fgColor: Int = Color.parseColor("#00FF41"),
+        bgColor: Int = Color.parseColor("#000000")
     ): Bitmap {
         val hints = mapOf(
             EncodeHintType.MARGIN to 1,
