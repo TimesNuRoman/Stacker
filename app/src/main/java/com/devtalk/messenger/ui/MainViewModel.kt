@@ -304,6 +304,7 @@ class MainViewModel @Inject constructor(
                 chatId = chatId,
                 senderId = user.uid,
                 senderName = user.username,
+                senderEmoji = user.avatarEmoji,
                 content = content,
                 type = MessageType.TEXT,
                 timestamp = System.currentTimeMillis()

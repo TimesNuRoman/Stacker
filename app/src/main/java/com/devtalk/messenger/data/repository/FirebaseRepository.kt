@@ -228,6 +228,52 @@ class FirebaseRepository @Inject constructor() {
         awaitClose { messagesRef.child(chatId).removeEventListener(listener) }
     }
 
+    suspend fun deleteMessage(chatId: String, messageId: String) {
+        messagesRef.child(chatId).child(messageId).updateChildren(mapOf(
+            "isDeleted" to true,
+            "content" to "[message deleted]"
+        )).await()
+    }
+
+    suspend fun editMessage(chatId: String, messageId: String, newContent: String) {
+        messagesRef.child(chatId).child(messageId).updateChildren(mapOf(
+            "content" to newContent,
+            "isEdited" to true
+        )).await()
+    }
+
+    suspend fun addReaction(chatId: String, messageId: String, uid: String, emoji: String) {
+        messagesRef.child(chatId).child(messageId)
+            .child("reactions").child(uid).setValue(emoji).await()
+    }
+
+    suspend fun removeReaction(chatId: String, messageId: String, uid: String) {
+        messagesRef.child(chatId).child(messageId)
+            .child("reactions").child(uid).removeValue().await()
+    }
+
+    suspend fun setTyping(chatId: String, uid: String, isTyping: Boolean) {
+        chatsRef.child(chatId).child("typing").child(uid).setValue(
+            if (isTyping) System.currentTimeMillis() else null
+        ).await()
+    }
+
+    fun observeTyping(chatId: String): Flow<Map<String, Long>> = callbackFlow {
+        val listener = chatsRef.child(chatId).child("typing")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val typing = snapshot.children.mapNotNull { child ->
+                        child.key?.let { k ->
+                            (child.value as? Long)?.let { v -> k to v }
+                        }
+                    }.toMap()
+                    trySend(typing)
+                }
+                override fun onCancelled(error: DatabaseError) { close(error.toException()) }
+            })
+        awaitClose { chatsRef.child(chatId).child("typing").removeEventListener(listener) }
+    }
+
     // ===== CALLS =====
     suspend fun createCall(call: CallSignal) {
         callsRef.child(call.id).setValue(call.toMap()).await()

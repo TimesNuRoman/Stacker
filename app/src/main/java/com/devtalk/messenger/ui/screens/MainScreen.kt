@@ -27,6 +27,7 @@ import com.devtalk.messenger.data.model.*
 import com.devtalk.messenger.ui.components.*
 import com.devtalk.messenger.ui.theme.IdeColors
 import com.devtalk.messenger.ui.theme.IdeTypography
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -513,169 +514,213 @@ private fun ChatEditorView(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    var replyingTo by remember { mutableStateOf<Message?>(null) }
+    var selectedMessageId by remember { mutableStateOf<String?>(null) }
+    var showReactionPicker by remember { mutableStateOf<String?>(null) }
 
+    // Auto-scroll
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             listState.animateScrollToItem(messages.size - 1)
         }
     }
 
+    // Show scroll-to-bottom button
+    val showScrollButton by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            messages.size - lastVisible > 3
+        }
+    }
+
     Column(modifier = modifier) {
-        // Breadcrumb / channel path
+        // Header bar with user info + actions
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(24.dp)
+                .height(40.dp)
                 .background(IdeColors.bgSecondary)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Text("🔒", style = IdeTypography.codeSmall)
-            Text("devtalk", style = IdeTypography.codeSmall.copy(color = IdeColors.textComment))
-            Text(">", style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen))
-            Text("channels", style = IdeTypography.codeSmall.copy(color = IdeColors.textComment))
-            Text(">", style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen))
-            Text(
-                "#${chat.getOtherName(currentUser.uid)}",
-                style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
+            HackerAvatar(
+                emoji = "🔒",
+                color = IdeColors.accentCyan,
+                size = 28.dp,
+                showBorder = false
             )
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Call buttons
-            IdeIconButton(
-                icon = Icons.Default.Phone,
-                contentDescription = "Voice",
-                onClick = onStartAudioCall,
-                tint = IdeColors.accentGreen
-            )
-            IdeIconButton(
-                icon = Icons.Default.Videocam,
-                contentDescription = "Video",
-                onClick = onStartVideoCall,
-                tint = IdeColors.accentCyan
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "#${chat.getOtherName(currentUser.uid)}",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
+                )
+                Text(
+                    text = "encrypted · ${messages.size} msgs",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 9.sp)
+                )
+            }
+            IdeIconButton(icon = Icons.Default.Phone, contentDescription = "Voice", onClick = onStartAudioCall, tint = IdeColors.accentGreen)
+            IdeIconButton(icon = Icons.Default.Videocam, contentDescription = "Video", onClick = onStartVideoCall, tint = IdeColors.accentCyan)
         }
         NeonDivider()
 
-        // Messages area
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .background(IdeColors.bgEditor)
-        ) {
-            // Channel header
-            item {
-                Column(modifier = Modifier.padding(vertical = 8.dp, horizontal = 0.dp)) {
-                    TerminalLine(
-                        lineNumber = 1,
-                        text = "╔══════════════════════════════════════╗"
-                    )
-                    TerminalLine(
-                        lineNumber = 2,
-                        text = "║  ENCRYPTED CHANNEL: #${chat.getOtherName(currentUser.uid)}"
-                    )
-                    TerminalLine(
-                        lineNumber = 3,
-                        text = "║  CREATED: ${formatDate(chat.createdAt)}"
-                    )
-                    TerminalLine(
-                        lineNumber = 4,
-                        text = "║  ENCRYPTION: AES-256-GCM + RSA-4096"
-                    )
-                    TerminalLine(
-                        lineNumber = 5,
-                        text = "╚══════════════════════════════════════╝"
-                    )
-                    TerminalLine(lineNumber = 6, text = "")
+        // Messages
+        Box(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(IdeColors.bgEditor),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                // Channel intro
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp, horizontal = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text("🔒", style = IdeTypography.code.copy(fontSize = 24.sp))
+                        Text(
+                            text = "#${chat.getOtherName(currentUser.uid)}",
+                            style = IdeTypography.codeLarge.copy(color = IdeColors.accentCyan)
+                        )
+                        Text(
+                            text = "Encrypted channel · ${formatDate(chat.createdAt)}",
+                            style = IdeTypography.codeSmall.copy(color = IdeColors.textComment)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(0.6f)
+                                .height(1.dp)
+                                .background(IdeColors.border)
+                        )
+                    }
+                }
+
+                // Messages with date separators
+                var lastDateStr = ""
+                messages.forEachIndexed { index, message ->
+                    val dateStr = SimpleDateFormat("MMM d, yyyy", Locale.getDefault()).format(Date(message.timestamp))
+                    if (dateStr != lastDateStr) {
+                        lastDateStr = dateStr
+                        item(key = "date_$dateStr") {
+                            DateSeparator(dateStr)
+                        }
+                    }
+
+                    val isOwn = message.senderId == currentUser.uid
+                    val showAvatar = index == 0 ||
+                            messages.getOrNull(index - 1)?.senderId != message.senderId ||
+                            message.timestamp - (messages.getOrNull(index - 1)?.timestamp ?: 0) > 120_000
+                    val isSelected = selectedMessageId == message.id
+
+                    item(key = message.id) {
+                        ChatBubble(
+                            message = message,
+                            isOwn = isOwn,
+                            showHeader = showAvatar,
+                            isSelected = isSelected,
+                            onLongPress = {
+                                selectedMessageId = if (isSelected) null else message.id
+                            },
+                            onReply = {
+                                replyingTo = message
+                                selectedMessageId = null
+                            },
+                            onReact = {
+                                showReactionPicker = message.id
+                                selectedMessageId = null
+                            },
+                            onCopy = {
+                                selectedMessageId = null
+                            }
+                        )
+                    }
                 }
             }
 
-            items(messages) { message ->
-                val lineNum = 7 + messages.indexOf(message) * 2
-                val isOwn = message.senderId == currentUser.uid
-                val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(message.timestamp))
-
-                Column(modifier = Modifier.padding(vertical = 2.dp)) {
-                    // Sender line
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(
-                                if (isOwn) Modifier.background(IdeColors.accentGreen.copy(alpha = 0.03f))
-                                else Modifier
-                            )
-                            .padding(vertical = 1.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        // Gutter
-                        Box(
-                            modifier = Modifier
-                                .width(48.dp)
-                                .background(IdeColors.gutter)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Text("$lineNum", style = IdeTypography.lineNumber)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .heightIn(min = 18.dp)
-                                .background(IdeColors.border)
-                        )
-                        Text(
-                            text = buildAnnotatedString {
-                                withStyle(SpanStyle(color = IdeColors.textComment)) { append(" [$timeStr] ") }
-                                withStyle(SpanStyle(color = if (isOwn) IdeColors.accentGreen else IdeColors.accentCyan)) {
-                                    append("<${message.senderName}>")
-                                }
-                            },
-                            style = IdeTypography.codeSmall,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                    // Message content
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .then(
-                                if (isOwn) Modifier.background(IdeColors.accentGreen.copy(alpha = 0.03f))
-                                else Modifier
-                            )
-                            .padding(vertical = 1.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .width(48.dp)
-                                .background(IdeColors.gutter)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                            contentAlignment = Alignment.CenterEnd
-                        ) {
-                            Text("${lineNum + 1}", style = IdeTypography.lineNumber)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .width(1.dp)
-                                .heightIn(min = 18.dp)
-                                .background(IdeColors.border)
-                        )
-                        Text(
-                            text = "   ${message.content}",
-                            style = IdeTypography.code.copy(
-                                color = if (isOwn) IdeColors.accentGreen else IdeColors.textPrimary
-                            ),
-                            modifier = Modifier.padding(top = 2.dp, end = 8.dp)
-                        )
-                    }
+            // Scroll-to-bottom FAB
+            if (showScrollButton) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(12.dp)
+                        .size(36.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(IdeColors.accentGreen.copy(alpha = 0.15f))
+                        .neonBorder(IdeColors.accentGreen.copy(alpha = 0.5f))
+                        .clickable {
+                            coroutineScope.launch {
+                                if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Scroll down",
+                        tint = IdeColors.accentGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
+            }
+
+            // Reaction picker
+            showReactionPicker?.let { msgId ->
+                ReactionPicker(
+                    onSelect = { emoji ->
+                        // handled via onSendReaction callback (to be wired)
+                        showReactionPicker = null
+                    },
+                    onDismiss = { showReactionPicker = null },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
             }
         }
 
-        // Input area (terminal prompt)
+        // Reply preview
+        replyingTo?.let { reply ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(IdeColors.accentCyan.copy(alpha = 0.06f))
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(28.dp)
+                        .background(IdeColors.accentCyan)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = reply.senderName,
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
+                    )
+                    Text(
+                        text = reply.content.take(60),
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.textComment),
+                        maxLines = 1
+                    )
+                }
+                IdeIconButton(
+                    icon = Icons.Default.Close,
+                    contentDescription = "Cancel reply",
+                    onClick = { replyingTo = null },
+                    tint = IdeColors.textComment
+                )
+            }
+        }
+
+        // Input area
         NeonDivider()
         Row(
             modifier = Modifier
@@ -683,13 +728,11 @@ private fun ChatEditorView(
                 .background(IdeColors.bgSecondary)
                 .padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Text(
                 text = buildAnnotatedString {
                     withStyle(SpanStyle(color = IdeColors.accentRed)) { append(currentUser.username) }
-                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append("@") }
-                    withStyle(SpanStyle(color = IdeColors.accentGreen)) { append("dtalk") }
                     withStyle(SpanStyle(color = IdeColors.textPrimary)) { append(":~# ") }
                 },
                 style = IdeTypography.codeSmall
@@ -697,16 +740,298 @@ private fun ChatEditorView(
             IdeTextField(
                 value = messageInput,
                 onValueChange = onMessageInputChange,
-                placeholder = "transmit message...",
+                placeholder = if (replyingTo != null) "reply..." else "transmit...",
                 modifier = Modifier.weight(1f)
             )
             IdeButton(
-                text = "SEND",
-                onClick = onSendMessage,
-                icon = Icons.Default.Send,
+                text = "▶",
+                onClick = {
+                    onSendMessage()
+                    replyingTo = null
+                },
+                color = IdeColors.accentGreen,
                 enabled = messageInput.isNotBlank()
             )
         }
+    }
+}
+
+// === Chat Bubble ===
+@Composable
+private fun ChatBubble(
+    message: Message,
+    isOwn: Boolean,
+    showHeader: Boolean,
+    isSelected: Boolean,
+    onLongPress: () -> Unit,
+    onReply: () -> Unit,
+    onReact: () -> Unit,
+    onCopy: () -> Unit
+) {
+    val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(message.timestamp))
+    val bubbleColor = if (isOwn) IdeColors.accentGreen.copy(alpha = 0.06f) else IdeColors.bgSecondary
+    val accentColor = if (isOwn) IdeColors.accentGreen else IdeColors.accentCyan
+
+    if (message.isDeleted) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 1.dp, horizontal = 4.dp),
+            horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
+        ) {
+            Text(
+                text = "  ░ message deleted ░",
+                style = IdeTypography.codeSmall.copy(color = IdeColors.textComment.copy(alpha = 0.5f))
+            )
+        }
+        return
+    }
+
+    if (message.type == MessageType.SYSTEM) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "── ${message.content} ──",
+                style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 10.sp)
+            )
+        }
+        return
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = if (isOwn) Alignment.End else Alignment.Start
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .then(
+                    if (isSelected) Modifier.background(IdeColors.accentGreen.copy(alpha = 0.04f))
+                    else Modifier
+                ),
+            horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start,
+            verticalAlignment = Alignment.Top
+        ) {
+            // Avatar (left, for other's messages)
+            if (!isOwn && showHeader) {
+                HackerAvatar(
+                    emoji = message.senderEmoji,
+                    color = IdeColors.accentCyan,
+                    size = 28.dp,
+                    showBorder = false
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+            } else if (!isOwn) {
+                Spacer(modifier = Modifier.width(34.dp))
+            }
+
+            // Bubble
+            Column(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(
+                        topStart = if (isOwn) 6.dp else if (showHeader) 0.dp else 6.dp,
+                        topEnd = if (!isOwn) 6.dp else if (showHeader) 0.dp else 6.dp,
+                        bottomStart = 6.dp,
+                        bottomEnd = 6.dp
+                    ))
+                    .background(bubbleColor)
+                    .combinedClickable(
+                        onClick = { },
+                        onLongClick = onLongPress
+                    )
+                    .neonBorder(
+                        if (isSelected) accentColor.copy(alpha = 0.5f)
+                        else accentColor.copy(alpha = 0.08f)
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .widthIn(min = 60.dp)
+            ) {
+                // Header (name + time)
+                if (showHeader) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = message.senderName,
+                            style = IdeTypography.codeSmall.copy(color = accentColor, fontSize = 11.sp)
+                        )
+                        Text(
+                            text = timeStr,
+                            style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 9.sp)
+                        )
+                        if (message.isEdited) {
+                            Text("(edited)", style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 8.sp))
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                }
+
+                // Reply preview
+                if (message.replyToName.isNotBlank()) {
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(IdeColors.accentCyan.copy(alpha = 0.05f))
+                            .padding(horizontal = 6.dp, vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .width(2.dp)
+                                .height(20.dp)
+                                .background(IdeColors.accentCyan.copy(alpha = 0.5f))
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column {
+                            Text(message.replyToName, style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan, fontSize = 9.sp))
+                            Text(message.replyToPreview.take(40), style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 9.sp), maxLines = 1)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(3.dp))
+                }
+
+                // Content
+                when (message.type) {
+                    MessageType.CODE -> {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(IdeColors.bgPrimary)
+                                .neonBorder(IdeColors.accentGreen.copy(alpha = 0.2f))
+                                .padding(6.dp)
+                        ) {
+                            Text(
+                                text = message.content,
+                                style = IdeTypography.code.copy(color = IdeColors.accentGreen, fontSize = 12.sp, lineHeight = 16.sp)
+                            )
+                        }
+                    }
+                    else -> {
+                        Text(
+                            text = message.content,
+                            style = IdeTypography.code.copy(
+                                color = if (isOwn) IdeColors.accentGreen else IdeColors.textPrimary,
+                                lineHeight = 18.sp
+                            )
+                        )
+                    }
+                }
+
+                // Timestamp if no header
+                if (!showHeader) {
+                    Text(
+                        text = timeStr,
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 8.sp),
+                        modifier = Modifier.align(Alignment.End)
+                    )
+                }
+
+                // Reactions
+                if (message.reactions.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        val grouped = message.reactions.values.groupBy { it }
+                        grouped.forEach { (emoji, list) ->
+                            Text(
+                                text = "$emoji ${list.size}",
+                                style = IdeTypography.codeSmall.copy(fontSize = 10.sp, color = IdeColors.textSecondary),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(IdeColors.bgInput)
+                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Context actions (on long press)
+        if (isSelected) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth(0.88f)
+                    .padding(top = 2.dp),
+                horizontalArrangement = if (isOwn) Arrangement.End else Arrangement.Start
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(IdeColors.bgToolbar)
+                        .neonBorder(IdeColors.border)
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    MsgAction("↩ Reply", IdeColors.accentCyan, onReply)
+                    MsgAction("⊕ React", IdeColors.accentYellow, onReact)
+                    MsgAction("⊡ Copy", IdeColors.textSecondary, onCopy)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MsgAction(label: String, color: Color, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = IdeTypography.codeSmall.copy(color = color, fontSize = 10.sp, letterSpacing = 0.sp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(2.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    )
+}
+
+@Composable
+private fun DateSeparator(date: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(IdeColors.border))
+        Text(
+            text = " $date ",
+            style = IdeTypography.codeSmall.copy(color = IdeColors.textComment, fontSize = 9.sp)
+        )
+        Box(modifier = Modifier.weight(1f).height(1.dp).background(IdeColors.border))
+    }
+}
+
+@Composable
+private fun ReactionPicker(
+    onSelect: (String) -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val reactions = listOf("👍", "❤️", "🔥", "😂", "😮", "💀", "🤖", "⚡")
+    Row(
+        modifier = modifier
+            .padding(8.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(IdeColors.bgToolbar)
+            .neonBorder(IdeColors.accentYellow.copy(alpha = 0.4f))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        reactions.forEach { emoji ->
+            Text(
+                text = emoji,
+                style = IdeTypography.code.copy(fontSize = 20.sp),
+                modifier = Modifier.clickable { onSelect(emoji) }
+            )
+        }
+        Text(
+            text = "✕",
+            style = IdeTypography.codeSmall.copy(color = IdeColors.textComment),
+            modifier = Modifier.clickable(onClick = onDismiss).padding(horizontal = 4.dp)
+        )
     }
 }
 
