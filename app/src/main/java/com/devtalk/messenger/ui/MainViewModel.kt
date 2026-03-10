@@ -35,6 +35,7 @@ class MainViewModel @Inject constructor(
         object BotBuilder : Screen()
         data class BotDetail(val botId: String) : Screen()
         data class BotEdit(val botId: String) : Screen()
+        data class UserProfile(val uid: String) : Screen()
         data class Call(val callId: String, val isOutgoing: Boolean) : Screen()
     }
 
@@ -195,6 +196,9 @@ class MainViewModel @Inject constructor(
 
     // === NAVIGATION ===
     fun navigateTo(screen: Screen) {
+        if (screen == Screen.Profile) {
+            loadMyWall()
+        }
         _currentScreen.value = screen
     }
 
@@ -572,6 +576,114 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    // === WALL ===
+    private val _wallPosts = MutableStateFlow<List<WallPost>>(emptyList())
+    val wallPosts: StateFlow<List<WallPost>> = _wallPosts.asStateFlow()
+
+    private val _wallComments = MutableStateFlow<Map<String, List<WallComment>>>(emptyMap())
+    val wallComments: StateFlow<Map<String, List<WallComment>>> = _wallComments.asStateFlow()
+
+    private val _viewingUser = MutableStateFlow<User?>(null)
+    val viewingUser: StateFlow<User?> = _viewingUser.asStateFlow()
+
+    private val _viewingWallPosts = MutableStateFlow<List<WallPost>>(emptyList())
+    val viewingWallPosts: StateFlow<List<WallPost>> = _viewingWallPosts.asStateFlow()
+
+    private val _viewingWallComments = MutableStateFlow<Map<String, List<WallComment>>>(emptyMap())
+    val viewingWallComments: StateFlow<Map<String, List<WallComment>>> = _viewingWallComments.asStateFlow()
+
+    fun loadMyWall() {
+        viewModelScope.launch {
+            val uid = _currentUser.value?.uid ?: return@launch
+            repository.observeWallPosts(uid).collect { posts ->
+                _wallPosts.value = posts
+            }
+        }
+    }
+
+    fun postToWall(content: String, type: WallPostType) {
+        viewModelScope.launch {
+            val user = _currentUser.value ?: return@launch
+            val post = WallPost(
+                id = repository.generatePostId(),
+                authorUid = user.uid,
+                authorName = user.username,
+                authorEmoji = user.avatarEmoji,
+                ownerUid = user.uid,
+                content = content,
+                type = type,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.createWallPost(post)
+        }
+    }
+
+    fun postToUserWall(ownerUid: String, content: String, type: WallPostType) {
+        viewModelScope.launch {
+            val user = _currentUser.value ?: return@launch
+            val post = WallPost(
+                id = repository.generatePostId(),
+                authorUid = user.uid,
+                authorName = user.username,
+                authorEmoji = user.avatarEmoji,
+                ownerUid = ownerUid,
+                content = content,
+                type = type,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.createWallPost(post)
+        }
+    }
+
+    fun likeWallPost(post: WallPost) {
+        viewModelScope.launch {
+            val uid = _currentUser.value?.uid ?: return@launch
+            repository.toggleWallPostLike(post.ownerUid, post.id, uid)
+        }
+    }
+
+    fun commentOnWallPost(post: WallPost, text: String) {
+        viewModelScope.launch {
+            val user = _currentUser.value ?: return@launch
+            val comment = WallComment(
+                id = repository.generateCommentId(),
+                postId = post.id,
+                authorUid = user.uid,
+                authorName = user.username,
+                authorEmoji = user.avatarEmoji,
+                content = text,
+                timestamp = System.currentTimeMillis()
+            )
+            repository.addWallComment(comment)
+        }
+    }
+
+    fun deleteWallPost(post: WallPost) {
+        viewModelScope.launch {
+            repository.deleteWallPost(post.ownerUid, post.id)
+        }
+    }
+
+    fun loadWallComments(postId: String) {
+        viewModelScope.launch {
+            repository.observeWallComments(postId).collect { comments ->
+                _wallComments.value = _wallComments.value.toMutableMap().apply { put(postId, comments) }
+                _viewingWallComments.value = _viewingWallComments.value.toMutableMap().apply { put(postId, comments) }
+            }
+        }
+    }
+
+    fun openUserProfile(uid: String) {
+        viewModelScope.launch {
+            val user = repository.getUser(uid) ?: return@launch
+            _viewingUser.value = user
+            _currentScreen.value = Screen.UserProfile(uid)
+            repository.observeWallPosts(uid).collect { posts ->
+                _viewingWallPosts.value = posts
+            }
+        }
+    }
+
     // === PROFILE ===
     fun updateStatus(status: UserStatus) {
         viewModelScope.launch {
@@ -583,8 +695,21 @@ class MainViewModel @Inject constructor(
 
     fun updateBio(bio: String) {
         viewModelScope.launch {
-            // In a complete implementation, save bio to Firebase
+            val uid = _currentUser.value?.uid ?: return@launch
+            repository.updateUserBio(uid, bio)
             _currentUser.value = _currentUser.value?.copy(bio = bio)
+        }
+    }
+
+    fun updateAvatar(emoji: String, ascii: String, color: String) {
+        viewModelScope.launch {
+            val uid = _currentUser.value?.uid ?: return@launch
+            repository.updateUserAvatar(uid, emoji, ascii, color)
+            _currentUser.value = _currentUser.value?.copy(
+                avatarEmoji = emoji,
+                avatarAscii = ascii,
+                avatarColor = color
+            )
         }
     }
 

@@ -24,6 +24,8 @@ class FirebaseRepository @Inject constructor() {
     private val contactsRef = db.getReference("contacts")
     private val callsRef = db.getReference("calls")
     private val botsRef = db.getReference("bots")
+    private val wallRef = db.getReference("wall")
+    private val wallCommentsRef = db.getReference("wall_comments")
 
     // ===== AUTH =====
     suspend fun signInAnonymously(): String {
@@ -106,12 +108,26 @@ class FirebaseRepository @Inject constructor() {
         usersRef.child(uid).child("lastSeen").setValue(System.currentTimeMillis()).await()
     }
 
+    suspend fun updateUserProfile(uid: String, updates: Map<String, Any>) {
+        usersRef.child(uid).updateChildren(updates).await()
+    }
+
+    suspend fun updateUserAvatar(uid: String, emoji: String, ascii: String, color: String) {
+        usersRef.child(uid).updateChildren(mapOf(
+            "avatarEmoji" to emoji,
+            "avatarAscii" to ascii,
+            "avatarColor" to color
+        )).await()
+    }
+
+    suspend fun updateUserBio(uid: String, bio: String) {
+        usersRef.child(uid).child("bio").setValue(bio).await()
+    }
+
     suspend fun deleteUser(uid: String) {
-        // Delete contacts
         contactsRef.child(uid).removeValue().await()
-        // Delete user data
+        wallRef.child(uid).removeValue().await()
         usersRef.child(uid).removeValue().await()
-        // Delete auth
         auth.currentUser?.delete()?.await()
     }
 
@@ -328,6 +344,64 @@ class FirebaseRepository @Inject constructor() {
     }
 
     fun generateBotId(): String = "bot_${UUID.randomUUID().toString().take(12)}"
+
+    // ===== WALL =====
+    suspend fun createWallPost(post: WallPost) {
+        wallRef.child(post.ownerUid).child(post.id).setValue(post.toMap()).await()
+    }
+
+    suspend fun deleteWallPost(ownerUid: String, postId: String) {
+        wallRef.child(ownerUid).child(postId).removeValue().await()
+        wallCommentsRef.child(postId).removeValue().await()
+    }
+
+    fun observeWallPosts(ownerUid: String): Flow<List<WallPost>> = callbackFlow {
+        val listener = wallRef.child(ownerUid)
+            .orderByChild("timestamp")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val posts = snapshot.children.mapNotNull { child ->
+                        @Suppress("UNCHECKED_CAST")
+                        (child.value as? Map<String, Any?>)?.let { WallPost.fromMap(it) }
+                    }.sortedByDescending { it.timestamp }
+                    trySend(posts)
+                }
+                override fun onCancelled(error: DatabaseError) { close(error.toException()) }
+            })
+        awaitClose { wallRef.child(ownerUid).removeEventListener(listener) }
+    }
+
+    suspend fun toggleWallPostLike(ownerUid: String, postId: String, likerUid: String) {
+        val ref = wallRef.child(ownerUid).child(postId).child("likes").child(likerUid)
+        val snapshot = ref.get().await()
+        val current = snapshot.getValue(Boolean::class.java) ?: false
+        ref.setValue(!current).await()
+    }
+
+    suspend fun addWallComment(comment: WallComment) {
+        wallCommentsRef.child(comment.postId).child(comment.id).setValue(comment.toMap()).await()
+        wallRef.child(comment.authorUid).child(comment.postId)
+            .child("commentsCount").setValue(ServerValue.increment(1)).await()
+    }
+
+    fun observeWallComments(postId: String): Flow<List<WallComment>> = callbackFlow {
+        val listener = wallCommentsRef.child(postId)
+            .orderByChild("timestamp")
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(snapshot: DataSnapshot) {
+                    val comments = snapshot.children.mapNotNull { child ->
+                        @Suppress("UNCHECKED_CAST")
+                        (child.value as? Map<String, Any?>)?.let { WallComment.fromMap(it) }
+                    }.sortedBy { it.timestamp }
+                    trySend(comments)
+                }
+                override fun onCancelled(error: DatabaseError) { close(error.toException()) }
+            })
+        awaitClose { wallCommentsRef.child(postId).removeEventListener(listener) }
+    }
+
+    fun generatePostId(): String = "post_${UUID.randomUUID().toString().take(12)}"
+    fun generateCommentId(): String = "cmt_${UUID.randomUUID().toString().take(12)}"
 
     // ===== UTILS =====
     private fun generateChatId(uid1: String, uid2: String): String {

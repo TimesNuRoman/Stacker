@@ -84,6 +84,11 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
     val selectedBot by viewModel.selectedBot.collectAsState()
     val editingBot by viewModel.editingBot.collectAsState()
     val isBotLoading by viewModel.isBotLoading.collectAsState()
+    val wallPosts by viewModel.wallPosts.collectAsState()
+    val wallComments by viewModel.wallComments.collectAsState()
+    val viewingUser by viewModel.viewingUser.collectAsState()
+    val viewingWallPosts by viewModel.viewingWallPosts.collectAsState()
+    val viewingWallComments by viewModel.viewingWallComments.collectAsState()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -150,7 +155,15 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onLogout = { showLogoutDialog = true },
                         onStatusChange = { viewModel.updateStatus(it) },
                         onBioChange = { viewModel.updateBio(it) },
-                        onOpenInvite = { viewModel.openInvite() }
+                        onAvatarChange = { emoji, ascii, color -> viewModel.updateAvatar(emoji, ascii, color) },
+                        onOpenInvite = { viewModel.openInvite() },
+                        wallPosts = wallPosts,
+                        wallComments = wallComments,
+                        onWallPost = { content, type -> viewModel.postToWall(content, type) },
+                        onWallLike = { viewModel.likeWallPost(it) },
+                        onWallComment = { post, text -> viewModel.commentOnWallPost(post, text) },
+                        onWallDelete = { viewModel.deleteWallPost(it) },
+                        onLoadComments = { viewModel.loadWallComments(it) }
                     )
                 }
             }
@@ -223,6 +236,37 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onDelete = { viewModel.deleteBot(it) },
                         isOwner = bot.creatorUid == (currentUser?.uid ?: "")
                     )
+                }
+            }
+
+            is MainViewModel.Screen.UserProfile -> {
+                val viewUser = viewingUser
+                currentUser?.let { me ->
+                    viewUser?.let { user ->
+                        UserProfileScreen(
+                            user = user,
+                            currentUser = me,
+                            onBack = { viewModel.navigateBack() },
+                            onMessage = {
+                                val contact = contacts.find { it.uid == user.uid }
+                                if (contact != null && contact.chatId.isNotEmpty()) {
+                                    viewModel.selectChat(contact.chatId)
+                                    viewModel.navigateBack()
+                                } else {
+                                    viewModel.addContactByUsername(user.username)
+                                }
+                            },
+                            onCall = { type -> viewModel.startCall(user.uid, type) },
+                            isContact = contacts.any { it.uid == user.uid },
+                            onAddContact = { viewModel.addContactByUsername(user.username) },
+                            wallPosts = viewingWallPosts,
+                            wallComments = viewingWallComments,
+                            onWallPost = { content, type -> viewModel.postToUserWall(user.uid, content, type) },
+                            onWallLike = { viewModel.likeWallPost(it) },
+                            onWallComment = { post, text -> viewModel.commentOnWallPost(post, text) },
+                            onLoadComments = { viewModel.loadWallComments(it) }
+                        )
+                    }
                 }
             }
 
