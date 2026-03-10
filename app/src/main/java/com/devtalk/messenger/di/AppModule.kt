@@ -2,6 +2,7 @@ package com.devtalk.messenger.di
 
 import android.content.Context
 import com.devtalk.messenger.data.repository.FirebaseRepository
+import com.devtalk.messenger.data.repository.StorageManager
 import com.devtalk.messenger.data.repository.UserPreferences
 import com.devtalk.messenger.webrtc.WebRtcManager
 import dagger.Module
@@ -25,6 +26,12 @@ object AppModule {
     @Singleton
     fun provideUserPreferences(@ApplicationContext context: Context): UserPreferences {
         return UserPreferences(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideStorageManager(@ApplicationContext context: Context): StorageManager {
+        return StorageManager(context)
     }
 
     @Provides

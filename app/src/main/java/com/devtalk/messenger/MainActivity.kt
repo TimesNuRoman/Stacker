@@ -2,8 +2,10 @@ package com.devtalk.messenger
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -90,6 +92,17 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
     val viewingWallPosts by viewModel.viewingWallPosts.collectAsState()
     val viewingWallComments by viewModel.viewingWallComments.collectAsState()
 
+    val pendingAttachments by viewModel.pendingAttachments.collectAsState()
+    val uploadProgressMap by viewModel.uploadProgress.collectAsState()
+
+    // File picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        val chatId = viewModel.selectedChatId.value ?: return@rememberLauncherForActivityResult
+        uris.forEach { uri -> viewModel.uploadAndAttachFile(chatId, uri) }
+    }
+
     var showLogoutDialog by remember { mutableStateOf(false) }
 
     if (showLogoutDialog) {
@@ -142,7 +155,13 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onContactClick = { viewModel.onContactClick(it) },
                         incomingCall = incomingCall,
                         onAcceptCall = { viewModel.acceptCall() },
-                        onRejectCall = { viewModel.rejectCall() }
+                        onRejectCall = { viewModel.rejectCall() },
+                        pendingAttachments = pendingAttachments,
+                        uploadProgress = uploadProgressMap,
+                        onAttachClick = {
+                            filePickerLauncher.launch(arrayOf("*/*"))
+                        },
+                        onRemoveAttachment = { viewModel.removePendingAttachment(it) }
                     )
                 }
             }

@@ -15,8 +15,14 @@ data class Message(
     val replyToPreview: String = "",
     val reactions: Map<String, String> = emptyMap(),
     val isEdited: Boolean = false,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val attachments: List<Attachment> = emptyList()
 ) {
+    val hasAttachments: Boolean get() = attachments.isNotEmpty()
+    val firstImage: Attachment? get() = attachments.firstOrNull { it.type == AttachmentType.IMAGE }
+    val imageAttachments: List<Attachment> get() = attachments.filter { it.type == AttachmentType.IMAGE }
+    val nonImageAttachments: List<Attachment> get() = attachments.filter { it.type != AttachmentType.IMAGE }
+
     fun toMap(): Map<String, Any> = mapOf(
         "id" to id,
         "chatId" to chatId,
@@ -32,7 +38,8 @@ data class Message(
         "replyToPreview" to replyToPreview,
         "reactions" to reactions,
         "isEdited" to isEdited,
-        "isDeleted" to isDeleted
+        "isDeleted" to isDeleted,
+        "attachments" to attachments.map { it.toMap() }
     )
 
     companion object {
@@ -57,7 +64,11 @@ data class Message(
                 (k as? String)?.let { key -> (v as? String)?.let { value -> key to value } }
             }?.toMap() ?: emptyMap(),
             isEdited = map["isEdited"] as? Boolean ?: false,
-            isDeleted = map["isDeleted"] as? Boolean ?: false
+            isDeleted = map["isDeleted"] as? Boolean ?: false,
+            attachments = (map["attachments"] as? List<*>)?.mapNotNull { item ->
+                @Suppress("UNCHECKED_CAST")
+                (item as? Map<String, Any?>)?.let { Attachment.fromMap(it) }
+            } ?: emptyList()
         )
     }
 

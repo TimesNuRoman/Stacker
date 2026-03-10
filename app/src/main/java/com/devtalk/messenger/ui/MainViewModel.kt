@@ -299,6 +299,8 @@ class MainViewModel @Inject constructor(
     fun sendMessage(chatId: String, content: String) {
         viewModelScope.launch {
             val user = _currentUser.value ?: return@launch
+            val attachments = _pendingAttachments.value.toList()
+
             val message = Message(
                 id = repository.generateMessageId(),
                 chatId = chatId,
@@ -307,10 +309,65 @@ class MainViewModel @Inject constructor(
                 senderEmoji = user.avatarEmoji,
                 content = content,
                 type = MessageType.TEXT,
-                timestamp = System.currentTimeMillis()
+                timestamp = System.currentTimeMillis(),
+                attachments = attachments
             )
+            _pendingAttachments.value = emptyList()
+            _uploadProgress.value = emptyMap()
+
             repository.sendMessage(message)
             processBotMessage(chatId, message)
+        }
+    }
+
+    // === ATTACHMENTS ===
+    private val _pendingAttachments = MutableStateFlow<List<Attachment>>(emptyList())
+    val pendingAttachments: StateFlow<List<Attachment>> = _pendingAttachments.asStateFlow()
+
+    private val _uploadProgress = MutableStateFlow<Map<String, Float>>(emptyMap())
+    val uploadProgress: StateFlow<Map<String, Float>> = _uploadProgress.asStateFlow()
+
+    fun addPendingAttachment(attachment: Attachment) {
+        _pendingAttachments.value = _pendingAttachments.value + attachment
+    }
+
+    fun removePendingAttachment(index: Int) {
+        _pendingAttachments.value = _pendingAttachments.value.toMutableList().also {
+            if (index in it.indices) it.removeAt(index)
+        }
+    }
+
+    fun uploadAndAttachFile(chatId: String, uri: android.net.Uri) {
+        viewModelScope.launch {
+            try {
+                val storageManager = com.devtalk.messenger.data.repository.StorageManager(appContext)
+                val info = storageManager.getFileInfo(uri)
+                val tempAttachment = Attachment(
+                    id = java.util.UUID.randomUUID().toString().take(12),
+                    type = Attachment.fromMimeType(info.mimeType),
+                    fileName = info.name,
+                    fileSize = info.size,
+                    mimeType = info.mimeType,
+                    localUri = uri.toString()
+                )
+                addPendingAttachment(tempAttachment)
+
+                val uploaded = storageManager.uploadFile(chatId, uri) { progress ->
+                    _uploadProgress.value = _uploadProgress.value.toMutableMap().apply {
+                        put(tempAttachment.id, progress)
+                    }
+                }
+
+                // Replace temp with uploaded version
+                _pendingAttachments.value = _pendingAttachments.value.map {
+                    if (it.id == tempAttachment.id) uploaded.copy(id = tempAttachment.id) else it
+                }
+                _uploadProgress.value = _uploadProgress.value.toMutableMap().apply {
+                    put(tempAttachment.id, 1f)
+                }
+            } catch (e: Exception) {
+                _error.value = "Upload failed: ${e.message}"
+            }
         }
     }
 

@@ -52,7 +52,11 @@ fun MainScreen(
     onContactClick: (Contact) -> Unit,
     incomingCall: CallSignal? = null,
     onAcceptCall: () -> Unit = {},
-    onRejectCall: () -> Unit = {}
+    onRejectCall: () -> Unit = {},
+    pendingAttachments: List<Attachment> = emptyList(),
+    uploadProgress: Map<String, Float> = emptyMap(),
+    onAttachClick: () -> Unit = {},
+    onRemoveAttachment: (Int) -> Unit = {}
 ) {
     var showSidebar by remember { mutableStateOf(true) }
     var sidebarTab by remember { mutableIntStateOf(0) }
@@ -433,7 +437,7 @@ fun MainScreen(
                                 messageInput = messageInput,
                                 onMessageInputChange = { messageInput = it },
                                 onSendMessage = {
-                                    if (messageInput.isNotBlank()) {
+                                    if (messageInput.isNotBlank() || pendingAttachments.isNotEmpty()) {
                                         onSendMessage(selectedChat.id, messageInput)
                                         messageInput = ""
                                     }
@@ -443,6 +447,11 @@ fun MainScreen(
                                 },
                                 onStartVideoCall = {
                                     onStartCall(selectedChat.getOtherParticipant(currentUser.uid), CallType.VIDEO)
+                                },
+                                pendingAttachments = pendingAttachments,
+                                uploadProgress = uploadProgress,
+                                onAttachClick = onAttachClick,
+                                onRemoveAttachment = onRemoveAttachment
                                 },
                                 modifier = Modifier.weight(1f)
                             )
@@ -511,6 +520,10 @@ private fun ChatEditorView(
     onSendMessage: () -> Unit,
     onStartAudioCall: () -> Unit,
     onStartVideoCall: () -> Unit,
+    pendingAttachments: List<Attachment> = emptyList(),
+    uploadProgress: Map<String, Float> = emptyMap(),
+    onAttachClick: () -> Unit = {},
+    onRemoveAttachment: (Int) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -720,27 +733,36 @@ private fun ChatEditorView(
             }
         }
 
+        // Pending attachments strip
+        if (pendingAttachments.isNotEmpty()) {
+            PendingAttachmentStrip(
+                attachments = pendingAttachments,
+                uploadProgress = uploadProgress,
+                onRemove = onRemoveAttachment
+            )
+        }
+
         // Input area
         NeonDivider()
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(IdeColors.bgSecondary)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
-                text = buildAnnotatedString {
-                    withStyle(SpanStyle(color = IdeColors.accentRed)) { append(currentUser.username) }
-                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append(":~# ") }
-                },
-                style = IdeTypography.codeSmall
+            // Attach button
+            IdeIconButton(
+                icon = Icons.Default.AttachFile,
+                contentDescription = "Attach file",
+                onClick = onAttachClick,
+                tint = IdeColors.accentCyan
             )
             IdeTextField(
                 value = messageInput,
                 onValueChange = onMessageInputChange,
-                placeholder = if (replyingTo != null) "reply..." else "transmit...",
+                placeholder = if (replyingTo != null) "reply..." else if (pendingAttachments.isNotEmpty()) "add caption..." else "transmit...",
                 modifier = Modifier.weight(1f)
             )
             IdeButton(
@@ -750,7 +772,7 @@ private fun ChatEditorView(
                     replyingTo = null
                 },
                 color = IdeColors.accentGreen,
-                enabled = messageInput.isNotBlank()
+                enabled = messageInput.isNotBlank() || pendingAttachments.isNotEmpty()
             )
         }
     }
@@ -893,30 +915,54 @@ private fun ChatBubble(
                     Spacer(modifier = Modifier.height(3.dp))
                 }
 
-                // Content
-                when (message.type) {
-                    MessageType.CODE -> {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(IdeColors.bgPrimary)
-                                .neonBorder(IdeColors.accentGreen.copy(alpha = 0.2f))
-                                .padding(6.dp)
-                        ) {
+                // Attachments
+                if (message.hasAttachments) {
+                    val images = message.imageAttachments
+                    val others = message.nonImageAttachments
+
+                    if (images.isNotEmpty()) {
+                        ImageGrid(
+                            images = images,
+                            onImageClick = { /* open gallery viewer */ },
+                            modifier = Modifier.padding(bottom = if (message.content.isNotBlank() || others.isNotEmpty()) 6.dp else 0.dp)
+                        )
+                    }
+
+                    others.forEach { att ->
+                        AttachmentRenderer(
+                            attachment = att,
+                            onClick = { /* open file viewer */ },
+                            modifier = Modifier.padding(bottom = if (message.content.isNotBlank()) 4.dp else 0.dp)
+                        )
+                    }
+                }
+
+                // Text content
+                if (message.content.isNotBlank()) {
+                    when (message.type) {
+                        MessageType.CODE -> {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(IdeColors.bgPrimary)
+                                    .neonBorder(IdeColors.accentGreen.copy(alpha = 0.2f))
+                                    .padding(6.dp)
+                            ) {
+                                Text(
+                                    text = message.content,
+                                    style = IdeTypography.code.copy(color = IdeColors.accentGreen, fontSize = 12.sp, lineHeight = 16.sp)
+                                )
+                            }
+                        }
+                        else -> {
                             Text(
                                 text = message.content,
-                                style = IdeTypography.code.copy(color = IdeColors.accentGreen, fontSize = 12.sp, lineHeight = 16.sp)
+                                style = IdeTypography.code.copy(
+                                    color = if (isOwn) IdeColors.accentGreen else IdeColors.textPrimary,
+                                    lineHeight = 18.sp
+                                )
                             )
                         }
-                    }
-                    else -> {
-                        Text(
-                            text = message.content,
-                            style = IdeTypography.code.copy(
-                                color = if (isOwn) IdeColors.accentGreen else IdeColors.textPrimary,
-                                lineHeight = 18.sp
-                            )
-                        )
                     }
                 }
 
