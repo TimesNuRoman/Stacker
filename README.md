@@ -22,10 +22,35 @@ DevTalk is a zero-registration messenger with audio/video calls. The entire UI i
 - **Real-time Messaging** — Firebase Realtime Database, encrypted channels.
 - **Audio & Video Calls** — WebRTC P2P with Firebase signaling.
 
-### Sharing
-- **QR Code Profile** — Neon green QR on black background for agent identification.
-- **Deep Link Sharing** — Share `devtalk://profile/handle` links.
-- **QR Scanner** — Camera scanner with neon corner crosshairs.
+### User Acquisition & Sharing (10+ methods)
+- **QR Code Profile** — Neon green QR on black background for agent identification
+- **Deep Link Sharing** — `devtalk://profile/handle` and `https://devtalk.app/u/handle`
+- **QR Scanner** — Camera scanner with neon corner crosshairs
+- **System Share** — Share via any installed app
+- **WhatsApp Share** — Direct share to WhatsApp contacts
+- **Telegram Share** — Direct share to Telegram chats
+- **SMS Share** — Send invite via text message
+- **Email Share** — Send invite via email
+- **Profile Card Image** — Generate a hacker-themed card with QR for social media
+- **Clipboard** — One-tap copy link or handle
+- **NFC** — Tap phones to exchange profiles
+- **Home Screen Widget** — QR code widget for instant scanning
+- **User Discovery** — Search agents, see who's online, browse recent joins
+- **Invite CTA** — Appears when search returns no results (passive acquisition)
+
+### Simplified Registration
+- **Quick-Pick Handles** — 6 random hacker-style names (shadow_dev, cyber_ops...)
+- **One-Tap Refresh** — Generate new suggestions instantly
+- **Type Your Own** — Manual entry still available
+- **One Button Launch** — Full-width "LAUNCH SESSION" button
+- **Fast Boot** — Shortened animation for quicker entry
+
+### Easy Contact Finding
+- **Live Search** — Type 2+ characters for instant results with debounce
+- **Online Users** — See all currently active agents
+- **Recent Users** — Browse newly joined agents
+- **One-Tap Add** — Add contact with a single tap
+- **Invite Missing Users** — When search fails, invite prompt appears
 
 ### Hacker-Themed UI
 
@@ -76,7 +101,7 @@ The entire app looks like something straight out of a hacking movie:
 ```
 app/src/main/java/com/devtalk/messenger/
 ├── DevTalkApp.kt                    # Hilt application
-├── MainActivity.kt                  # Navigation host + logout dialog
+├── MainActivity.kt                  # Navigation + deep link handler
 ├── data/
 │   ├── model/
 │   │   ├── User.kt                  # Agent model (ONLINE/GHOST/STEALTH/DARK)
@@ -85,30 +110,35 @@ app/src/main/java/com/devtalk/messenger/
 │   │   ├── Contact.kt               # Agent contact
 │   │   └── CallState.kt             # Call signaling model
 │   └── repository/
-│       ├── FirebaseRepository.kt     # Firebase CRUD + realtime observers
+│       ├── FirebaseRepository.kt     # CRUD + search + online/recent queries
 │       └── UserPreferences.kt        # Local session DataStore
 ├── di/
 │   └── AppModule.kt                 # Hilt DI module
 ├── ui/
-│   ├── MainViewModel.kt             # State management
+│   ├── MainViewModel.kt             # State + search/discovery logic
 │   ├── theme/
 │   │   └── IdeTheme.kt              # Hacker color palette + neon typography
 │   ├── components/
 │   │   └── IdeComponents.kt         # CRT overlay, Matrix rain, glitch text,
-│   │                                  neon borders, hacker panels, terminal lines,
-│   │                                  blinking cursor, typewriter effect
+│   │                                  neon borders, hacker panels, blinking cursor
 │   └── screens/
-│       ├── WelcomeScreen.kt         # Boot sequence + handle entry
-│       ├── MainScreen.kt            # Hacker IDE layout (nodes/channels)
-│       ├── ProfileScreen.kt         # Agent identity card + neon QR
+│       ├── WelcomeScreen.kt         # Quick-pick handles + boot sequence
+│       ├── MainScreen.kt            # Hacker layout (search/invite in toolbar)
+│       ├── UserSearchScreen.kt      # Live search + online/recent discovery
+│       ├── InviteScreen.kt          # All 10+ sharing methods
+│       ├── ProfileScreen.kt         # Identity card + invite CTA
 │       ├── QrScannerScreen.kt       # Targeting scanner with crosshairs
 │       ├── CallScreen.kt            # Surveillance-style call UI
 │       └── LogoutDialog.kt          # Self-destruct confirmation
 ├── webrtc/
 │   ├── WebRtcManager.kt             # WebRTC peer connection
 │   └── CallService.kt               # Foreground call service
+├── widget/
+│   └── QrWidgetProvider.kt          # Home screen QR code widget
 └── util/
-    └── QrCodeUtils.kt               # Neon QR generation + deep links
+    ├── QrCodeUtils.kt               # Neon QR generation + deep links
+    ├── InviteManager.kt             # All sharing methods + profile card
+    └── UsernameGenerator.kt         # Hacker-style handle generator
 ```
 
 ## Custom Visual Effects
