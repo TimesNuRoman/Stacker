@@ -38,6 +38,21 @@ DevTalk is a zero-registration messenger with audio/video calls. The entire UI i
 - **User Discovery** — Search agents, see who's online, browse recent joins
 - **Invite CTA** — Appears when search returns no results (passive acquisition)
 
+### Public Bot System
+- **7 Pre-built Templates** — Greeter, Magic 8-Ball, Quiz Master, Motivation, Dice & Random, FAQ, Blank
+- **Visual Bot Builder** — 4-step wizard: Template → Info → Rules → Test & Deploy
+- **No Coding Required** — Pick trigger type + type response text, done
+- **Trigger Types** — /command, exact keyword, contains text, any message, first message
+- **Response Types** — Fixed text, random from list, sequence rotation
+- **Emoji Avatar Picker** — 16 emoji options for bot personality
+- **Interactive Test Console** — Try your bot before publishing (in builder and detail screen)
+- **Bot Catalog** — Browse public bots, search by name/tags
+- **One-Tap Add** — Start chatting with any bot instantly
+- **Bot Chat** — Bots respond automatically with typing delay simulation
+- **Usage Stats** — Track users, messages, popularity
+- **Edit & Delete** — Full management of your bots
+- **Public/Private Toggle** — Public bots discoverable, private via direct link only
+
 ### Simplified Registration
 - **Quick-Pick Handles** — 6 random hacker-style names (shadow_dev, cyber_ops...)
 - **One-Tap Refresh** — Generate new suggestions instantly
@@ -104,6 +119,7 @@ app/src/main/java/com/devtalk/messenger/
 ├── MainActivity.kt                  # Navigation + deep link handler
 ├── data/
 │   ├── model/
+│   │   ├── Bot.kt                   # Bot + BotRule + BotTemplate models
 │   │   ├── User.kt                  # Agent model (ONLINE/GHOST/STEALTH/DARK)
 │   │   ├── Message.kt               # Message with IRC formatting
 │   │   ├── Chat.kt                  # Encrypted channel model
@@ -126,10 +142,15 @@ app/src/main/java/com/devtalk/messenger/
 │       ├── MainScreen.kt            # Hacker layout (search/invite in toolbar)
 │       ├── UserSearchScreen.kt      # Live search + online/recent discovery
 │       ├── InviteScreen.kt          # All 10+ sharing methods
+│       ├── BotBuilderScreen.kt       # 4-step visual bot wizard
+│       ├── BotCatalogScreen.kt      # Browse/search public bots
+│       ├── BotDetailScreen.kt       # Bot info + test + add to chat
 │       ├── ProfileScreen.kt         # Identity card + invite CTA
 │       ├── QrScannerScreen.kt       # Targeting scanner with crosshairs
 │       ├── CallScreen.kt            # Surveillance-style call UI
 │       └── LogoutDialog.kt          # Self-destruct confirmation
+├── bot/
+│   └── BotEngine.kt                # Message processing engine
 ├── webrtc/
 │   ├── WebRtcManager.kt             # WebRTC peer connection
 │   └── CallService.kt               # Foreground call service
