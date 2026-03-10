@@ -11,8 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
@@ -20,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.devtalk.messenger.ui.components.*
 import com.devtalk.messenger.ui.theme.IdeColors
 import com.devtalk.messenger.ui.theme.IdeTypography
+import com.devtalk.messenger.util.UsernameGenerator
 import kotlinx.coroutines.delay
 
 @Composable
@@ -33,17 +32,15 @@ fun WelcomeScreen(
     var showInput by remember { mutableStateOf(false) }
     var showSkull by remember { mutableStateOf(false) }
     var phase by remember { mutableIntStateOf(0) }
+    var suggestedNames by remember { mutableStateOf(UsernameGenerator.generateBatch(6)) }
 
-    // Boot sequence animation
+    // Boot sequence
     LaunchedEffect(Unit) {
-        delay(600)
-
-        // Phase 1: Skull
+        delay(400)
         showSkull = true
-        delay(1500)
+        delay(1000)
         phase = 1
 
-        // Phase 2: Boot lines
         val lines = listOf(
             "[SYS] DevTalk Secure Shell v1.0.0",
             "[SYS] ████████████████████████████",
@@ -51,25 +48,17 @@ fun WelcomeScreen(
             "[INIT] Routing through Tor nodes...",
             "[INIT] Node 1: 185.220.101.██  OK",
             "[INIT] Node 2: 51.15.███.███   OK",
-            "[INIT] Node 3: 198.98.██.███   OK",
             "[CRYPT] AES-256-GCM initialized",
-            "[CRYPT] RSA-4096 keypair generated",
-            "[CRYPT] Perfect forward secrecy... ACTIVE",
-            "",
-            "[NET] WebRTC tunnel... READY",
+            "[CRYPT] RSA-4096 keypair... READY",
             "[NET] P2P mesh network... ONLINE",
-            "[NET] Signal encrypted... ✓",
             "",
-            "[WARN] No identity found.",
-            "[WARN] Anonymous session required.",
-            "[SYS] Choose your handle. No traces.",
-            "[SYS] Exit = total wipe. No recovery.",
+            "[SYS] Choose your handle ↓",
         )
         for (line in lines) {
             bootLines = bootLines + line
-            delay(if (line.isEmpty()) 60 else 80)
+            delay(if (line.isEmpty()) 50 else 60)
         }
-        delay(200)
+        delay(150)
         showInput = true
     }
 
@@ -78,119 +67,64 @@ fun WelcomeScreen(
             .fillMaxSize()
             .background(IdeColors.bgPrimary)
     ) {
-        // Matrix rain background
         MatrixRain(alpha = 0.04f, density = 15)
 
         Column(modifier = Modifier.fillMaxSize()) {
-            // Toolbar
             IdeToolbar(title = "DEVTALK :: SECURE INIT")
-
-            // Tab bar
             IdeTabBar(
-                tabs = listOf(
-                    TabItem("init.sh", icon = Icons.Default.Terminal),
-                ),
+                tabs = listOf(TabItem("init.sh", icon = Icons.Default.Terminal)),
                 selectedIndex = 0,
                 onTabSelected = {}
             )
 
-            // Main content
             Column(
                 modifier = Modifier
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
                     .padding(bottom = 16.dp)
             ) {
-                // Skull ASCII art
+                // ASCII Logo
                 AnimatedVisibility(
                     visible = showSkull,
-                    enter = fadeIn(animationSpec = tween(800))
+                    enter = fadeIn(animationSpec = tween(600))
                 ) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         GlitchText(
-                            text = """
-    ██████╗ ███████╗██╗   ██╗████████╗ █████╗ ██╗     ██╗  ██╗
-    ██╔══██╗██╔════╝██║   ██║╚══██╔══╝██╔══██╗██║     ██║ ██╔╝
-    ██║  ██║█████╗  ██║   ██║   ██║   ███████║██║     █████╔╝ 
-    ██║  ██║██╔══╝  ╚██╗ ██╔╝   ██║   ██╔══██║██║     ██╔═██╗ 
-    ██████╔╝███████╗ ╚████╔╝    ██║   ██║  ██║███████╗██║  ██╗
-    ╚═════╝ ╚══════╝  ╚═══╝     ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝
-                            """.trimIndent(),
-                            style = IdeTypography.ascii.copy(
-                                color = IdeColors.accentGreen,
-                                fontSize = 6.sp
-                            ),
+                            text = "D E V T A L K",
+                            style = IdeTypography.glitch.copy(letterSpacing = 6.sp),
                             glitchIntensity = 0.15f
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄",
-                            style = IdeTypography.ascii.copy(color = IdeColors.accentGreen.copy(alpha = 0.4f))
-                        )
-                        Text(
-                            text = "ENCRYPTED  ·  ANONYMOUS  ·  EPHEMERAL",
-                            style = IdeTypography.codeSmall.copy(
-                                color = IdeColors.accentCyan,
-                                letterSpacing = 3.sp
-                            )
+                            text = "ENCRYPTED · ANONYMOUS · EPHEMERAL",
+                            style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan, letterSpacing = 2.sp)
                         )
                     }
                 }
 
-                // Boot log lines
-                AnimatedVisibility(
-                    visible = phase >= 1,
-                    enter = fadeIn()
-                ) {
+                // Boot log
+                AnimatedVisibility(visible = phase >= 1, enter = fadeIn()) {
                     Column {
                         bootLines.forEachIndexed { index, line ->
                             val color = when {
                                 line.startsWith("[WARN]") -> IdeColors.accentYellow
                                 line.startsWith("[CRYPT]") -> IdeColors.accentCyan
-                                line.contains("OK") || line.contains("✓") ||
-                                        line.contains("ACTIVE") || line.contains("READY") ||
-                                        line.contains("ONLINE") -> IdeColors.accentGreen
-                                line.startsWith("[SYS]") && line.contains("█") -> IdeColors.accentGreen
-                                line.startsWith("[SYS]") -> IdeColors.textPrimary
+                                line.contains("OK") || line.contains("READY") || line.contains("ONLINE") -> IdeColors.accentGreen
                                 line.startsWith("[NET]") -> IdeColors.accentPurple
-                                line.startsWith("[INIT]") -> IdeColors.textSecondary
-                                else -> IdeColors.textPrimary
+                                line.contains("█") -> IdeColors.accentGreen
+                                else -> IdeColors.textSecondary
                             }
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 1.dp)
-                            ) {
-                                // Line number gutter
+                            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
                                 Box(
-                                    modifier = Modifier
-                                        .width(40.dp)
-                                        .background(IdeColors.gutter)
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    modifier = Modifier.width(36.dp).background(IdeColors.gutter).padding(horizontal = 4.dp, vertical = 2.dp),
                                     contentAlignment = Alignment.CenterEnd
-                                ) {
-                                    Text(
-                                        text = "${index + 1}",
-                                        style = IdeTypography.lineNumber
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .heightIn(min = 18.dp)
-                                        .background(IdeColors.border)
-                                )
-                                Text(
-                                    text = " $line",
-                                    style = IdeTypography.codeSmall.copy(color = color),
-                                    modifier = Modifier.padding(top = 2.dp, bottom = 2.dp)
-                                )
+                                ) { Text("${index + 1}", style = IdeTypography.lineNumber) }
+                                Box(modifier = Modifier.width(1.dp).heightIn(min = 16.dp).background(IdeColors.border))
+                                Text(" $line", style = IdeTypography.codeSmall.copy(color = color), modifier = Modifier.padding(top = 1.dp))
                             }
                         }
                     }
@@ -201,40 +135,79 @@ fun WelcomeScreen(
                     visible = showInput,
                     enter = fadeIn() + slideInVertically { it / 2 }
                 ) {
-                    Column(modifier = Modifier.padding(top = 12.dp)) {
-                        // Prompt
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                    Column(modifier = Modifier.padding(top = 8.dp)) {
+                        // === QUICK PICK: suggested names ===
+                        HackerPanel(
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            borderColor = IdeColors.accentCyan
                         ) {
-                            Text(
-                                text = buildAnnotatedString {
-                                    withStyle(SpanStyle(color = IdeColors.accentRed)) { append("root") }
-                                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append("@") }
-                                    withStyle(SpanStyle(color = IdeColors.accentGreen)) { append("devtalk") }
-                                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append(":") }
-                                    withStyle(SpanStyle(color = IdeColors.accentCyan)) { append("~") }
-                                    withStyle(SpanStyle(color = IdeColors.textPrimary)) { append("# ") }
-                                    withStyle(SpanStyle(color = IdeColors.accentYellow)) { append("set_identity") }
-                                },
-                                style = IdeTypography.code
-                            )
-                            BlinkingCursor()
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "[QUICK START — tap to pick]",
+                                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan),
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IdeIconButton(
+                                    icon = Icons.Default.Refresh,
+                                    contentDescription = "Regenerate",
+                                    onClick = { suggestedNames = UsernameGenerator.generateBatch(6) },
+                                    tint = IdeColors.accentCyan
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // 2 rows x 3 columns of suggested handles
+                            for (row in suggestedNames.chunked(3)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    row.forEach { name ->
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(
+                                                    if (username == name) IdeColors.bgSelection
+                                                    else IdeColors.bgInput
+                                                )
+                                                .neonBorder(
+                                                    if (username == name) IdeColors.accentGreen
+                                                    else IdeColors.border
+                                                )
+                                                .clickable { username = name }
+                                                .padding(horizontal = 8.dp, vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = name,
+                                                style = IdeTypography.codeSmall.copy(
+                                                    color = if (username == name) IdeColors.accentGreen
+                                                    else IdeColors.textSecondary
+                                                ),
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                            }
                         }
 
-                        // Username input
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // === OR TYPE YOUR OWN ===
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                .padding(horizontal = 12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text(
-                                text = ">>>",
-                                style = IdeTypography.code.copy(color = IdeColors.accentGreen)
-                            )
+                            Text(">>>", style = IdeTypography.code.copy(color = IdeColors.accentGreen))
                             IdeTextField(
                                 value = username,
                                 onValueChange = { newVal ->
@@ -242,126 +215,79 @@ fun WelcomeScreen(
                                         it.isLetterOrDigit() || it == '_' || it == '-'
                                     }
                                 },
-                                placeholder = "enter_handle",
+                                placeholder = "or type your handle...",
                                 modifier = Modifier.weight(1f)
                             )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // === GO BUTTON ===
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp)
+                        ) {
                             IdeButton(
-                                text = "EXEC",
+                                text = if (isLoading) "CONNECTING..." else "▶ LAUNCH SESSION",
                                 onClick = { onCreateAccount(username) },
-                                icon = Icons.Default.PlayArrow,
+                                icon = if (isLoading) Icons.Default.HourglassEmpty else Icons.Default.PlayArrow,
                                 color = IdeColors.accentGreen,
-                                enabled = username.length >= 3 && !isLoading
+                                enabled = username.length >= 3 && !isLoading,
+                                modifier = Modifier.fillMaxWidth()
                             )
                         }
 
                         // Error
                         error?.let {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "[ERROR] $it",
-                                    style = IdeTypography.code.copy(color = IdeColors.accentRed)
-                                )
-                            }
+                            Text(
+                                text = "[ERROR] $it",
+                                style = IdeTypography.code.copy(color = IdeColors.accentRed),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
                         }
 
-                        // Loading
                         if (isLoading) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "[CONN] Establishing secure tunnel...",
-                                    style = IdeTypography.code.copy(color = IdeColors.accentCyan)
-                                )
+                                Text("[CONN] Establishing secure tunnel...", style = IdeTypography.code.copy(color = IdeColors.accentCyan))
                                 BlinkingCursor(color = IdeColors.accentCyan)
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                        // Rules panel
+                        // Rules
                         HackerPanel(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            borderColor = IdeColors.accentGreen
+                            modifier = Modifier.padding(horizontal = 12.dp),
+                            borderColor = IdeColors.border
                         ) {
-                            Text(
-                                text = "┌─────────────────────────────────────┐",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.border)
-                            )
-                            Text(
-                                text = "│  PROTOCOL RULES                     │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
-                            )
-                            Text(
-                                text = "├─────────────────────────────────────┤",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.border)
-                            )
-                            Text(
-                                text = "│  ► Handle: 3+ chars (a-z 0-9 _ -)  │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
-                            )
-                            Text(
-                                text = "│  ► Must be unique across network    │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
-                            )
-                            Text(
-                                text = "│  ► No email. No phone. No password. │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
-                            )
-                            Text(
-                                text = "│  ► Session = volatile memory only   │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.accentYellow)
-                            )
-                            Text(
-                                text = "│  ► EXIT = TOTAL WIPE. NO RECOVERY. │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
-                            )
-                            Text(
-                                text = "│  ► Share QR / link to connect       │",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
-                            )
-                            Text(
-                                text = "└─────────────────────────────────────┘",
-                                style = IdeTypography.codeSmall.copy(color = IdeColors.border)
-                            )
+                            Text("┌─── RULES ───────────────────────────┐", style = IdeTypography.codeSmall.copy(color = IdeColors.border))
+                            Text("│ ► 3+ chars (a-z 0-9 _ -)            │", style = IdeTypography.codeSmall.copy(color = IdeColors.textComment))
+                            Text("│ ► Unique handle across network       │", style = IdeTypography.codeSmall.copy(color = IdeColors.textComment))
+                            Text("│ ► No email / phone / password        │", style = IdeTypography.codeSmall.copy(color = IdeColors.textComment))
+                            Text("│ ► EXIT = wipe. No recovery.          │", style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed))
+                            Text("└──────────────────────────────────────┘", style = IdeTypography.codeSmall.copy(color = IdeColors.border))
                         }
                     }
                 }
             }
 
-            // Status bar
             IdeStatusBar(
                 items = listOf(
-                    StatusBarItem(
-                        text = "SECURE",
-                        icon = Icons.Default.Lock,
-                        color = IdeColors.accentGreen
-                    ),
+                    StatusBarItem(text = "SECURE", icon = Icons.Default.Lock, color = IdeColors.accentGreen),
                     StatusBarItem(text = "", fillWeight = true),
                     StatusBarItem(
-                        text = if (username.length >= 3) "HANDLE VALID" else "MIN 3 CHARS",
+                        text = if (username.length >= 3) "VALID" else "MIN 3",
                         color = if (username.length >= 3) IdeColors.accentGreen else IdeColors.accentRed
                     ),
-                    StatusBarItem(
-                        text = "E2E",
-                        color = IdeColors.accentCyan
-                    ),
-                    StatusBarItem(
-                        text = "AES-256",
-                        color = IdeColors.textComment
-                    )
+                    StatusBarItem(text = "AES-256", color = IdeColors.textComment)
                 )
             )
         }
 
-        // CRT scanline overlay
         CrtOverlay()
     }
 }

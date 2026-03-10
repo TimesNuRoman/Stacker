@@ -23,6 +23,7 @@ import com.devtalk.messenger.data.model.UserStatus
 import com.devtalk.messenger.ui.components.*
 import com.devtalk.messenger.ui.theme.IdeColors
 import com.devtalk.messenger.ui.theme.IdeTypography
+import com.devtalk.messenger.util.InviteManager
 import com.devtalk.messenger.util.QrCodeUtils
 
 @Composable
@@ -31,7 +32,8 @@ fun ProfileScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onStatusChange: (UserStatus) -> Unit,
-    onBioChange: (String) -> Unit
+    onBioChange: (String) -> Unit,
+    onOpenInvite: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val profileLink = remember(user.username) {
@@ -255,6 +257,47 @@ fun ProfileScreen(
                         Text(
                             text = "[COPIED TO CLIPBOARD ✓]",
                             style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Invite friends banner
+                HackerPanel(borderColor = IdeColors.accentPurple) {
+                    Text(
+                        text = "[INVITE FRIENDS]",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Share via WhatsApp, Telegram, SMS, email",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.textComment)
+                    )
+                    Text(
+                        text = "or share a stylized profile card image.",
+                        style = IdeTypography.codeSmall.copy(color = IdeColors.textComment)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        IdeButton(
+                            text = "ALL METHODS",
+                            onClick = onOpenInvite,
+                            icon = Icons.Default.Share,
+                            color = IdeColors.accentPurple,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IdeButton(
+                            text = "CARD",
+                            onClick = {
+                                InviteManager.shareProfileCardImage(context, user.username, qrBitmap)
+                            },
+                            icon = Icons.Default.Image,
+                            color = IdeColors.accentCyan,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }

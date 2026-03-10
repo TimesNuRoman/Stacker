@@ -62,6 +62,44 @@ class FirebaseRepository @Inject constructor() {
         return User.fromMap(first.value as Map<String, Any?>)
     }
 
+    suspend fun searchUsersByPrefix(prefix: String, limit: Int = 20): List<User> {
+        if (prefix.length < 2) return emptyList()
+        val endStr = prefix + "\uf8ff"
+        val snapshot = usersRef.orderByChild("username")
+            .startAt(prefix)
+            .endAt(endStr)
+            .limitToFirst(limit)
+            .get()
+            .await()
+        return snapshot.children.mapNotNull { child ->
+            @Suppress("UNCHECKED_CAST")
+            (child.value as? Map<String, Any?>)?.let { User.fromMap(it) }
+        }
+    }
+
+    suspend fun getOnlineUsers(limit: Int = 50): List<User> {
+        val snapshot = usersRef.orderByChild("status")
+            .equalTo(UserStatus.ONLINE.name)
+            .limitToFirst(limit)
+            .get()
+            .await()
+        return snapshot.children.mapNotNull { child ->
+            @Suppress("UNCHECKED_CAST")
+            (child.value as? Map<String, Any?>)?.let { User.fromMap(it) }
+        }
+    }
+
+    suspend fun getRecentUsers(limit: Int = 20): List<User> {
+        val snapshot = usersRef.orderByChild("createdAt")
+            .limitToLast(limit)
+            .get()
+            .await()
+        return snapshot.children.mapNotNull { child ->
+            @Suppress("UNCHECKED_CAST")
+            (child.value as? Map<String, Any?>)?.let { User.fromMap(it) }
+        }.sortedByDescending { it.createdAt }
+    }
+
     suspend fun updateUserStatus(uid: String, status: UserStatus) {
         usersRef.child(uid).child("status").setValue(status.name).await()
         usersRef.child(uid).child("lastSeen").setValue(System.currentTimeMillis()).await()

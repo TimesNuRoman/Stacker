@@ -6,13 +6,18 @@ import com.devtalk.messenger.data.model.*
 import com.devtalk.messenger.data.repository.FirebaseRepository
 import com.devtalk.messenger.data.repository.UserPreferences
 import com.devtalk.messenger.webrtc.WebRtcManager
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Context
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
+    @ApplicationContext private val appContext: Context,
     private val repository: FirebaseRepository,
     private val preferences: UserPreferences,
     private val webRtcManager: WebRtcManager
@@ -24,6 +29,8 @@ class MainViewModel @Inject constructor(
         object Main : Screen()
         object Profile : Screen()
         object QrScanner : Screen()
+        object Search : Screen()
+        object Invite : Screen()
         data class Call(val callId: String, val isOutgoing: Boolean) : Screen()
     }
 
@@ -57,6 +64,19 @@ class MainViewModel @Inject constructor(
     // === Calls ===
     private val _incomingCall = MutableStateFlow<CallSignal?>(null)
     val incomingCall: StateFlow<CallSignal?> = _incomingCall.asStateFlow()
+
+    // === Search ===
+    private val _searchResults = MutableStateFlow<List<User>>(emptyList())
+    val searchResults: StateFlow<List<User>> = _searchResults.asStateFlow()
+
+    private val _onlineUsers = MutableStateFlow<List<User>>(emptyList())
+    val onlineUsers: StateFlow<List<User>> = _onlineUsers.asStateFlow()
+
+    private val _recentUsers = MutableStateFlow<List<User>>(emptyList())
+    val recentUsers: StateFlow<List<User>> = _recentUsers.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
 
     val callState = webRtcManager.callState
     val isMuted = webRtcManager.isMuted
@@ -116,6 +136,9 @@ class MainViewModel @Inject constructor(
                 preferences.saveUser(uid, username, username)
                 _currentUser.value = user
                 _currentScreen.value = Screen.Main
+
+                // Save username for widget
+                updateWidgetUsername(username)
 
                 // Initialize WebRTC
                 webRtcManager.initialize()
@@ -313,6 +336,49 @@ class MainViewModel @Inject constructor(
     fun toggleCamera() = webRtcManager.toggleCamera()
     fun toggleSpeaker() = webRtcManager.toggleSpeaker()
 
+    // === SEARCH & DISCOVERY ===
+    fun searchUsers(query: String) {
+        viewModelScope.launch {
+            _isSearching.value = true
+            try {
+                val results = repository.searchUsersByPrefix(query)
+                _searchResults.value = results.filter { it.uid != _currentUser.value?.uid }
+            } catch (e: Exception) {
+                _searchResults.value = emptyList()
+            } finally {
+                _isSearching.value = false
+            }
+        }
+    }
+
+    fun loadOnlineUsers() {
+        viewModelScope.launch {
+            try {
+                val users = repository.getOnlineUsers()
+                _onlineUsers.value = users.filter { it.uid != _currentUser.value?.uid }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun loadRecentUsers() {
+        viewModelScope.launch {
+            try {
+                val users = repository.getRecentUsers()
+                _recentUsers.value = users.filter { it.uid != _currentUser.value?.uid }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun openSearch() {
+        loadOnlineUsers()
+        loadRecentUsers()
+        _currentScreen.value = Screen.Search
+    }
+
+    fun openInvite() {
+        _currentScreen.value = Screen.Invite
+    }
+
     // === PROFILE ===
     fun updateStatus(status: UserStatus) {
         viewModelScope.launch {
@@ -360,6 +426,19 @@ class MainViewModel @Inject constructor(
                 user?.let { _currentUser.value = it }
             }
         }
+    }
+
+    private fun updateWidgetUsername(username: String) {
+        try {
+            val prefs = appContext.getSharedPreferences("devtalk_widget", Context.MODE_PRIVATE)
+            prefs.edit().putString("username", username).apply()
+            val manager = AppWidgetManager.getInstance(appContext)
+            val widget = ComponentName(appContext, com.devtalk.messenger.widget.QrWidgetProvider::class.java)
+            val ids = manager.getAppWidgetIds(widget)
+            ids.forEach { id ->
+                com.devtalk.messenger.widget.QrWidgetProvider.updateWidget(appContext, manager, id)
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onCleared() {

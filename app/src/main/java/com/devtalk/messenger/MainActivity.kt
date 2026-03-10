@@ -26,8 +26,35 @@ class MainActivity : ComponentActivity() {
         setContent {
             DevTalkTheme {
                 val viewModel: MainViewModel = hiltViewModel()
+
+                // Handle deep links
+                LaunchedEffect(Unit) {
+                    handleDeepLink(intent, viewModel)
+                }
+
                 DevTalkNavHost(viewModel = viewModel)
             }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
+    private fun handleDeepLink(intent: android.content.Intent?, viewModel: MainViewModel) {
+        val uri = intent?.data ?: return
+        val username = when {
+            // devtalk://profile/username
+            uri.scheme == "devtalk" && uri.host == "profile" ->
+                uri.pathSegments?.firstOrNull()
+            // https://devtalk.app/u/username
+            uri.host == "devtalk.app" && uri.pathSegments?.firstOrNull() == "u" ->
+                uri.pathSegments?.getOrNull(1)
+            else -> null
+        }
+        username?.let {
+            viewModel.addContactByUsername(it)
         }
     }
 }
@@ -48,10 +75,13 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
     val isCameraOff by viewModel.isCameraOff.collectAsState()
     val isSpeakerOn by viewModel.isSpeakerOn.collectAsState()
     val callDuration by viewModel.callDuration.collectAsState()
+    val searchResults by viewModel.searchResults.collectAsState()
+    val onlineUsers by viewModel.onlineUsers.collectAsState()
+    val recentUsers by viewModel.recentUsers.collectAsState()
+    val isSearching by viewModel.isSearching.collectAsState()
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Logout confirmation dialog
     if (showLogoutDialog) {
         LogoutConfirmDialog(
             username = currentUser?.username ?: "",
@@ -94,6 +124,8 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onSendMessage = { chatId, content -> viewModel.sendMessage(chatId, content) },
                         onOpenProfile = { viewModel.navigateTo(MainViewModel.Screen.Profile) },
                         onOpenQrScanner = { viewModel.navigateTo(MainViewModel.Screen.QrScanner) },
+                        onOpenSearch = { viewModel.openSearch() },
+                        onOpenInvite = { viewModel.openInvite() },
                         onStartCall = { uid, type -> viewModel.startCall(uid, type) },
                         onLogout = { showLogoutDialog = true },
                         onContactClick = { viewModel.onContactClick(it) },
@@ -111,7 +143,8 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onBack = { viewModel.navigateBack() },
                         onLogout = { showLogoutDialog = true },
                         onStatusChange = { viewModel.updateStatus(it) },
-                        onBioChange = { viewModel.updateBio(it) }
+                        onBioChange = { viewModel.updateBio(it) },
+                        onOpenInvite = { viewModel.openInvite() }
                     )
                 }
             }
@@ -121,6 +154,29 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                     onBack = { viewModel.navigateBack() },
                     onUsernameScanned = { username -> viewModel.addContactByUsername(username) },
                     onManualAdd = { username -> viewModel.addContactByUsername(username) }
+                )
+            }
+
+            is MainViewModel.Screen.Search -> {
+                UserSearchScreen(
+                    onBack = { viewModel.navigateBack() },
+                    onAddUser = { username -> viewModel.addContactByUsername(username) },
+                    onOpenScanner = { viewModel.navigateTo(MainViewModel.Screen.QrScanner) },
+                    onOpenInvite = { viewModel.openInvite() },
+                    searchResults = searchResults,
+                    onlineUsers = onlineUsers,
+                    recentUsers = recentUsers,
+                    onSearchQuery = { viewModel.searchUsers(it) },
+                    isSearching = isSearching,
+                    currentUid = currentUser?.uid ?: "",
+                    existingContactUids = contacts.map { it.uid }.toSet()
+                )
+            }
+
+            is MainViewModel.Screen.Invite -> {
+                InviteScreen(
+                    username = currentUser?.username ?: "",
+                    onBack = { viewModel.navigateBack() }
                 )
             }
 
@@ -143,7 +199,6 @@ fun DevTalkNavHost(viewModel: MainViewModel) {
                         onEndCall = { viewModel.endCall() }
                     )
                 } else {
-                    // Call ended, go back
                     LaunchedEffect(Unit) {
                         viewModel.navigateBack()
                     }

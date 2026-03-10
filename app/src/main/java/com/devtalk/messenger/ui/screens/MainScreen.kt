@@ -43,6 +43,8 @@ fun MainScreen(
     onSendMessage: (String, String) -> Unit,
     onOpenProfile: () -> Unit,
     onOpenQrScanner: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenInvite: () -> Unit,
     onStartCall: (String, CallType) -> Unit,
     onLogout: () -> Unit,
     onContactClick: (Contact) -> Unit,
@@ -112,6 +114,18 @@ fun MainScreen(
                 Spacer(modifier = Modifier.weight(1f))
 
                 IdeIconButton(
+                    icon = Icons.Default.Search,
+                    contentDescription = "Find agents",
+                    onClick = onOpenSearch,
+                    tint = IdeColors.accentGreen
+                )
+                IdeIconButton(
+                    icon = Icons.Default.PersonAdd,
+                    contentDescription = "Invite",
+                    onClick = onOpenInvite,
+                    tint = IdeColors.accentPurple
+                )
+                IdeIconButton(
                     icon = Icons.Default.QrCodeScanner,
                     contentDescription = "Scan",
                     onClick = onOpenQrScanner,
@@ -141,16 +155,24 @@ fun MainScreen(
                     .neonBorder(IdeColors.accentGreen.copy(alpha = 0.3f))
             ) {
                 DropdownMenuItem(
-                    text = { Text("[+] NEW CHANNEL", style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen)) },
+                    text = { Text("[🔍] FIND AGENTS", style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen)) },
+                    onClick = { showMenu = false; onOpenSearch() }
+                )
+                DropdownMenuItem(
+                    text = { Text("[📡] SCAN QR", style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)) },
                     onClick = { showMenu = false; onOpenQrScanner() }
                 )
                 DropdownMenuItem(
-                    text = { Text("[i] IDENTITY", style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)) },
+                    text = { Text("[📢] INVITE FRIENDS", style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)) },
+                    onClick = { showMenu = false; onOpenInvite() }
+                )
+                DropdownMenuItem(
+                    text = { Text("[👤] IDENTITY", style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)) },
                     onClick = { showMenu = false; onOpenProfile() }
                 )
                 Divider(color = IdeColors.border)
                 DropdownMenuItem(
-                    text = { Text("[!] SELF-DESTRUCT", style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)) },
+                    text = { Text("[☠] SELF-DESTRUCT", style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)) },
                     onClick = { showMenu = false; onLogout() }
                 )
             }
@@ -287,26 +309,38 @@ fun MainScreen(
                                 // Contacts (agents) view
                                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                                     item {
-                                        Row(
+                                        Column(
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .padding(8.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
                                             IdeButton(
-                                                text = "SCAN",
-                                                onClick = onOpenQrScanner,
-                                                icon = Icons.Default.QrCodeScanner,
-                                                modifier = Modifier.weight(1f),
-                                                color = IdeColors.accentCyan
-                                            )
-                                            IdeButton(
-                                                text = "MY QR",
-                                                onClick = onOpenProfile,
-                                                icon = Icons.Default.QrCode,
-                                                modifier = Modifier.weight(1f),
+                                                text = "FIND AGENTS",
+                                                onClick = onOpenSearch,
+                                                icon = Icons.Default.Search,
+                                                modifier = Modifier.fillMaxWidth(),
                                                 color = IdeColors.accentGreen
                                             )
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                IdeButton(
+                                                    text = "SCAN",
+                                                    onClick = onOpenQrScanner,
+                                                    icon = Icons.Default.QrCodeScanner,
+                                                    modifier = Modifier.weight(1f),
+                                                    color = IdeColors.accentCyan
+                                                )
+                                                IdeButton(
+                                                    text = "INVITE",
+                                                    onClick = onOpenInvite,
+                                                    icon = Icons.Default.Share,
+                                                    modifier = Modifier.weight(1f),
+                                                    color = IdeColors.accentPurple
+                                                )
+                                            }
                                         }
                                     }
                                     if (contacts.isEmpty()) {
@@ -754,24 +788,24 @@ private fun WelcomeEditor(
                     style = IdeTypography.codeSmall.copy(color = IdeColors.border)
                 )
                 Text(
+                    text = "│ [SEARCH]  Find agents on network    │",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen)
+                )
+                Text(
                     text = "│ [SCAN]    Scan QR — import agent    │",
                     style = IdeTypography.codeSmall.copy(color = IdeColors.accentCyan)
                 )
                 Text(
-                    text = "│ [ID]      Identity — share QR/link  │",
-                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentGreen)
+                    text = "│ [INVITE]  Share link / QR to invite │",
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)
                 )
                 Text(
                     text = "│ [VOICE]   Encrypted voice channel   │",
-                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
                 )
                 Text(
                     text = "│ [VIDEO]   Encrypted video feed      │",
-                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentPurple)
-                )
-                Text(
-                    text = "│ [EXIT]    Self-destruct. No traces. │",
-                    style = IdeTypography.codeSmall.copy(color = IdeColors.accentRed)
+                    style = IdeTypography.codeSmall.copy(color = IdeColors.textSecondary)
                 )
                 Text(
                     text = "└─────────────────────────────────────┘",
