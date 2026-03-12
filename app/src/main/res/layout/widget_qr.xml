@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="8dp"
+    android:background="#FF000000">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="☠ DEVTALK"
+        android:textColor="#FF00FF41"
+        android:textSize="10sp"
+        android:fontFamily="monospace"
+        android:letterSpacing="0.2" />
+
+    <ImageView
+        android:id="@+id/widget_qr_image"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="4dp"
+        android:scaleType="fitCenter"
+        android:contentDescription="QR Code" />
+
+    <TextView
+        android:id="@+id/widget_username"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#FF00FFCC"
+        android:textSize="10sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="SCAN TO ADD"
+        android:textColor="#FF005500"
+        android:textSize="8sp"
+        android:fontFamily="monospace" />
+
+</LinearLayout>
